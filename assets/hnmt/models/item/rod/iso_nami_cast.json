@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld_rod",
+  "textures": {
+    "layer0": "hnmt:item/rod/iso_nami_cast"
+  }
+}
