@@ -13,6 +13,7 @@ ASSETS = os.path.join(ROOT, "resourcepack", "assets", "hnmt")
 PACK = os.path.join(ROOT, "resourcepack")
 
 FISH = ["unagi", "salmon", "kohada", "konoshiro", "tai", "hirame", "saba", "hamachi", "buri", "ika", "kanpachi", "maguro"]
+BAITS = ["mimizu", "ebi", "iwashi", "ika_no_mi"]
 RODS = ["bamboo", "keiryu_nami", "keiryu_jo", "iso_nami", "iso_jo", "fune_nami", "fune_jo"]
 
 
@@ -29,12 +30,16 @@ def model(kind, name):
 
 def main():
     write(os.path.join(PACK, "pack.mcmeta"), {
-        "pack": {"description": "日ノ本鯖 魚と釣竿の見た目", "min_format": 75, "max_format": 75}
+        "pack": {"description": "日ノ本鯖 魚と釣竿と餌の見た目", "min_format": 75, "max_format": 75}
     })
     for fid in FISH:
         write(f"{ASSETS}/items/fish/{fid}.json", {"model": model("fish", fid)})
         write(f"{ASSETS}/models/item/fish/{fid}.json",
               {"parent": "minecraft:item/generated", "textures": {"layer0": f"hnmt:item/fish/{fid}"}})
+    for bid in BAITS:
+        write(f"{ASSETS}/items/bait/{bid}.json", {"model": model("bait", bid)})
+        write(f"{ASSETS}/models/item/bait/{bid}.json",
+              {"parent": "minecraft:item/generated", "textures": {"layer0": f"hnmt:item/bait/{bid}"}})
     for rid in RODS:
         # バニラの fishing_rod と同じ作り: 投げている間は _cast のモデルに切り替える
         write(f"{ASSETS}/items/rod/{rid}.json", {"model": {

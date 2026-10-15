@@ -1,8 +1,8 @@
 #!/bin/sh
 # 配布用 zip を resourcepack-build/ に作る。  使い方: sh resourcepack/tools/build_zip.sh [3d]
 #   引数なし: 平らなアイコン版（hnmt-resourcepack.zip）
-#   3d      : 魚と釣竿が 3D モデルの版（hnmt-resourcepack-3d.zip）。モデルは resourcepack/models3d にあるので、Blender は要らない
-#             （モデルを作り直すときだけ、blender_fish3d.py と blender_rod3d.py を実行する）
+#   3d      : 魚・釣竿・餌が 3D モデルの版（hnmt-resourcepack-3d.zip）。モデルは resourcepack/models3d にあるので、Blender は要らない
+#             （モデルを作り直すときだけ、blender_fish3d.py・blender_rod3d.py・blender_bait3d.py を実行する）
 set -e
 cd "$(dirname "$0")/../.."
 ROOT=$(pwd)
@@ -13,6 +13,7 @@ if [ "$1" = "3d" ]; then
   cp -R resourcepack/pack.mcmeta resourcepack/assets "$B/stage3d/"
   cp resourcepack/models3d/fish/*.json "$B/stage3d/assets/hnmt/models/item/fish/"
   cp resourcepack/models3d/rod/*.json "$B/stage3d/assets/hnmt/models/item/rod/"
+  cp resourcepack/models3d/bait/*.json "$B/stage3d/assets/hnmt/models/item/bait/"
   OUT=hnmt-resourcepack-3d.zip; SRC=$B/stage3d
 else
   OUT=hnmt-resourcepack.zip; SRC=$ROOT/resourcepack
