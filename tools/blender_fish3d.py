@@ -12,6 +12,7 @@
   resourcepack/models3d/fish/<ID>.json       3D モデル（build_zip.sh 3d で pack に入れる。Git で管理する）
   resourcepack-build/preview3d/<ID>.png      Blender で描いたプレビュー
 """
+
 import json
 import math
 import os
@@ -21,11 +22,26 @@ import bpy
 from mathutils import Vector
 
 ROOT = os.getcwd()  # リポジトリのルートで実行する
-TEX_DIR = os.path.join(ROOT, "resourcepack", "assets", "hnmt", "textures", "item", "fish")
+TEX_DIR = os.path.join(
+    ROOT, "resourcepack", "assets", "hnmt", "textures", "item", "fish"
+)
 OUT_DIR = os.path.join(ROOT, "resourcepack", "models3d", "fish")
 PREV_DIR = os.path.join(ROOT, "resourcepack-build", "preview3d")
 
-FISH = ["unagi", "salmon", "kohada", "konoshiro", "tai", "hirame", "saba", "hamachi", "buri", "ika", "kanpachi", "maguro"]
+FISH = [
+    "unagi",
+    "salmon",
+    "kohada",
+    "konoshiro",
+    "tai",
+    "hirame",
+    "saba",
+    "hamachi",
+    "buri",
+    "ika",
+    "kanpachi",
+    "maguro",
+]
 # 厚みの最大値(モデル単位 1/16 ブロック)、尾の始まる列(それ以降は薄く)、一定の厚み(薄い魚)
 PARAMS = {
     "unagi": dict(tmax=1.8, flat=1.8),
@@ -47,10 +63,14 @@ UNIT = 16.0 / GRID  # 1ピクセル = 0.5 モデル単位
 
 
 def load_alpha(fid):
-    img = bpy.data.images.load(os.path.join(TEX_DIR, fid + ".png"), check_existing=False)
+    img = bpy.data.images.load(
+        os.path.join(TEX_DIR, fid + ".png"), check_existing=False
+    )
     w, h = img.size
     px = list(img.pixels)
-    return [[px[((h - 1 - y) * w + x) * 4 + 3] > 0.5 for x in range(w)] for y in range(h)], img
+    return [
+        [px[((h - 1 - y) * w + x) * 4 + 3] > 0.5 for x in range(w)] for y in range(h)
+    ], img
 
 
 def runs_of(alpha, x):
@@ -102,7 +122,8 @@ def build_elements(fid, alpha):
             "from": [u1, 16 - v2, 8 - th / 2],
             "to": [u2, 16 - v1, 8 + th / 2],
             "faces": {
-                "north": {"uv": side}, "south": {"uv": side},
+                "north": {"uv": side},
+                "south": {"uv": side},
                 "east": {"uv": [(xb - 1) * UNIT, v1, xb * UNIT, v2]},
                 "west": {"uv": [xa * UNIT, v1, (xa + 1) * UNIT, v2]},
                 "up": {"uv": [u1, v1, u2, v1 + UNIT]},
@@ -114,11 +135,27 @@ def build_elements(fid, alpha):
 
 
 DISPLAY = {  # バニラの item/generated を元に、GUI だけ少し斜めにして立体感を出す
-    "gui": {"rotation": [15, -30, 0], "translation": [0, 0, 0], "scale": [0.95, 0.95, 0.95]},
-    "ground": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.5, 0.5, 0.5]},
+    "gui": {
+        "rotation": [15, -30, 0],
+        "translation": [0, 0, 0],
+        "scale": [0.95, 0.95, 0.95],
+    },
+    "ground": {
+        "rotation": [0, 0, 0],
+        "translation": [0, 2, 0],
+        "scale": [0.5, 0.5, 0.5],
+    },
     "head": {"rotation": [0, 180, 0], "translation": [0, 13, 7], "scale": [1, 1, 1]},
-    "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 3, 1], "scale": [0.55, 0.55, 0.55]},
-    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
+    "thirdperson_righthand": {
+        "rotation": [0, 0, 0],
+        "translation": [0, 3, 1],
+        "scale": [0.55, 0.55, 0.55],
+    },
+    "firstperson_righthand": {
+        "rotation": [0, -90, 25],
+        "translation": [1.13, 3.2, 1.13],
+        "scale": [0.68, 0.68, 0.68],
+    },
     "fixed": {"rotation": [0, 180, 0], "scale": [1, 1, 1]},
 }
 
@@ -131,10 +168,16 @@ def write_model(fid, elements):
         "display": DISPLAY,
     }
     for e in elements:
-        data["elements"].append({
-            "from": [round(v, 4) for v in e["from"]], "to": [round(v, 4) for v in e["to"]],
-            "faces": {k: {"uv": [round(u, 4) for u in f["uv"]], "texture": "#0"} for k, f in e["faces"].items()},
-        })
+        data["elements"].append(
+            {
+                "from": [round(v, 4) for v in e["from"]],
+                "to": [round(v, 4) for v in e["to"]],
+                "faces": {
+                    k: {"uv": [round(u, 4) for u in f["uv"]], "texture": "#0"}
+                    for k, f in e["faces"].items()
+                },
+            }
+        )
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(os.path.join(OUT_DIR, fid + ".json"), "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
@@ -207,7 +250,11 @@ def setup_scene():
     cam.data.type = "ORTHO"
     cam.data.ortho_scale = 2.3
     yaw, pitch, dist = math.radians(28), math.radians(16), 6
-    cam.location = (math.sin(yaw) * dist * math.cos(pitch) * -1, -math.cos(yaw) * dist * math.cos(pitch), math.sin(pitch) * dist)
+    cam.location = (
+        math.sin(yaw) * dist * math.cos(pitch) * -1,
+        -math.cos(yaw) * dist * math.cos(pitch),
+        math.sin(pitch) * dist,
+    )
     sc.collection.objects.link(cam)
     direction = Vector((0, 0, 0)) - cam.location
     cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
@@ -223,17 +270,22 @@ def setup_scene():
 
 
 def main():
-    os.makedirs(PREV_DIR, exist_ok=True)
-    setup_scene()
-    for fid in FISH:
-        alpha, image = load_alpha(fid)
-        elements = build_elements(fid, alpha)
-        write_model(fid, elements)
-        obj = build_object(fid, elements, image)
-        bpy.context.scene.render.filepath = os.path.join(PREV_DIR, fid + ".png")
-        bpy.ops.render.render(write_still=True)
-        bpy.data.objects.remove(obj, do_unlink=True)
-        print(f"{fid}: {len(elements)} elements")
+    import subprocess
+    import sys
+
+    sys.path.insert(0, os.path.join(ROOT, "resourcepack", "tools"))
+    subprocess.run(
+        [
+            "python3",
+            os.path.join(ROOT, "resourcepack", "tools", "make_models.py"),
+            "--group",
+            "fish",
+        ],
+        check=True,
+    )
+    from blender_preview import render
+
+    render("fish")
 
 
 if __name__ == "__main__":

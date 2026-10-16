@@ -5,16 +5,39 @@
 pack.mcmeta は、1.21.11 のリソースパック形式 75（client.jar の version.json の resource_major=75 と
 Minecraft Wiki の Pack format 表で確認）に合わせている。
 """
+
 import json
 import os
+from artwork import DISHES, EXTRAS
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ASSETS = os.path.join(ROOT, "resourcepack", "assets", "hnmt")
 PACK = os.path.join(ROOT, "resourcepack")
 
-FISH = ["unagi", "salmon", "kohada", "konoshiro", "tai", "hirame", "saba", "hamachi", "buri", "ika", "kanpachi", "maguro"]
+FISH = [
+    "unagi",
+    "salmon",
+    "kohada",
+    "konoshiro",
+    "tai",
+    "hirame",
+    "saba",
+    "hamachi",
+    "buri",
+    "ika",
+    "kanpachi",
+    "maguro",
+]
 BAITS = ["mimizu", "ebi", "iwashi", "ika_no_mi"]
-RODS = ["bamboo", "keiryu_nami", "keiryu_jo", "iso_nami", "iso_jo", "fune_nami", "fune_jo"]
+RODS = [
+    "bamboo",
+    "keiryu_nami",
+    "keiryu_jo",
+    "iso_nami",
+    "iso_jo",
+    "fune_nami",
+    "fune_jo",
+]
 
 
 def write(path, data):
@@ -29,28 +52,74 @@ def model(kind, name):
 
 
 def main():
-    write(os.path.join(PACK, "pack.mcmeta"), {
-        "pack": {"description": "日ノ本鯖 魚と釣竿と餌の見た目", "min_format": 75, "max_format": 75}
-    })
+    write(
+        os.path.join(PACK, "pack.mcmeta"),
+        {
+            "pack": {
+                "description": "日ノ本鯖 魚と釣竿と餌の見た目",
+                "min_format": 75,
+                "max_format": 75,
+            }
+        },
+    )
     for fid in FISH:
         write(f"{ASSETS}/items/fish/{fid}.json", {"model": model("fish", fid)})
-        write(f"{ASSETS}/models/item/fish/{fid}.json",
-              {"parent": "minecraft:item/generated", "textures": {"layer0": f"hnmt:item/fish/{fid}"}})
+        write(
+            f"{ASSETS}/models/item/fish/{fid}.json",
+            {
+                "parent": "minecraft:item/generated",
+                "textures": {"layer0": f"hnmt:item/fish/{fid}"},
+            },
+        )
     for bid in BAITS:
         write(f"{ASSETS}/items/bait/{bid}.json", {"model": model("bait", bid)})
-        write(f"{ASSETS}/models/item/bait/{bid}.json",
-              {"parent": "minecraft:item/generated", "textures": {"layer0": f"hnmt:item/bait/{bid}"}})
+        write(
+            f"{ASSETS}/models/item/bait/{bid}.json",
+            {
+                "parent": "minecraft:item/generated",
+                "textures": {"layer0": f"hnmt:item/bait/{bid}"},
+            },
+        )
+    for kind, entries in (("dish", DISHES), ("", EXTRAS)):
+        for identifier, _ in entries:
+            relative = "/".join(part for part in (kind, identifier) if part)
+            write(
+                f"{ASSETS}/items/{relative}.json",
+                {
+                    "model": {
+                        "type": "minecraft:model",
+                        "model": f"hnmt:item/{relative}",
+                    }
+                },
+            )
+            write(
+                f"{ASSETS}/models/item/{relative}.json",
+                {
+                    "parent": "minecraft:item/generated",
+                    "textures": {"layer0": f"hnmt:item/{relative}"},
+                },
+            )
     for rid in RODS:
         # バニラの fishing_rod と同じ作り: 投げている間は _cast のモデルに切り替える
-        write(f"{ASSETS}/items/rod/{rid}.json", {"model": {
-            "type": "minecraft:condition",
-            "property": "minecraft:fishing_rod/cast",
-            "on_true": model("rod", rid + "_cast"),
-            "on_false": model("rod", rid),
-        }})
+        write(
+            f"{ASSETS}/items/rod/{rid}.json",
+            {
+                "model": {
+                    "type": "minecraft:condition",
+                    "property": "minecraft:fishing_rod/cast",
+                    "on_true": model("rod", rid + "_cast"),
+                    "on_false": model("rod", rid),
+                }
+            },
+        )
         for suffix in ("", "_cast"):
-            write(f"{ASSETS}/models/item/rod/{rid}{suffix}.json",
-                  {"parent": "minecraft:item/handheld_rod", "textures": {"layer0": f"hnmt:item/rod/{rid}{suffix}"}})
+            write(
+                f"{ASSETS}/models/item/rod/{rid}{suffix}.json",
+                {
+                    "parent": "minecraft:item/handheld_rod",
+                    "textures": {"layer0": f"hnmt:item/rod/{rid}{suffix}"},
+                },
+            )
 
 
 if __name__ == "__main__":

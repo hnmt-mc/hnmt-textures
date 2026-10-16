@@ -1,180 +1,94 @@
 #!/usr/bin/env python3
-"""釣竿7本の 16x16 テクスチャ（通常・投げた状態）と見本画像を作る。
+"""Pixel rod silhouettes based on real keiryu, iso and boat-rod construction."""
 
-使い方:  python3 resourcepack/tools/make_rods.py
-出力:    resourcepack/assets/hnmt/textures/item/rod/<ID>.png と <ID>_cast.png
-         resourcepack-build/rods_contact_sheet.png
-バニラの釣竿（16x16、左下が握り・右上が先端）と同じ向きで、
-通常の絵には釣り糸が垂れ、「投げた状態」の絵には糸が無い（糸は実体として描かれるため）。
-"""
-import glob
-import math
-import os
+from PIL import ImageDraw
+from artwork import canvas, save, sheet, RODS, OUTLINE, GOLD
 
-from PIL import Image, ImageDraw, ImageFont
-
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-TEX_DIR = os.path.join(ROOT, "resourcepack", "assets", "hnmt", "textures", "item", "rod")
-BUILD_DIR = os.path.join(ROOT, "resourcepack-build")
-N = 16
-
-
-def dark(c, f=0.55):
-    return tuple(int(v * f) for v in c)
-
-
-def light(c, f=0.3):
-    return tuple(int(v + (255 - v) * f) for v in c)
-
-
-GOLD = (236, 190, 60)
-SILVER = (196, 204, 212)
 LINE = (232, 232, 232)
-
-# start/end: 握りの下端と先端（行ごとに x を補間する）。w0/w1: 握り側と先端側の横幅。
-# grip: 握りの行数。bands: 竿の途中の巻き（t は 0..1）。nodes: 竹の節。guides: ガイド（糸通し）の t。
-# reel: (色, 大きさ) 握りの手前に付くリール。
-RODS = {
-    "bamboo": dict(  # 素朴な竹
-        start=(2, 14), end=(12, 2), w0=2, w1=1, grip=3, grip_c=(112, 78, 40), body=(196, 164, 84),
-        nodes=[0.35, 0.62, 0.84], node_c=(120, 140, 60), bands=[], guides=[0.9], reel=None,
-    ),
-    "keiryu_nami": dict(  # 細く長い竹
-        start=(1, 14), end=(13, 2), w0=2, w1=1, grip=3, grip_c=(150, 110, 70), body=(214, 190, 112),
-        nodes=[0.3, 0.5, 0.7, 0.88], node_c=(160, 130, 60), bands=[], guides=[0.45, 0.75, 0.95], reel=None,
-    ),
-    "keiryu_jo": dict(  # 漆塗りの細竿に金の巻き
-        start=(1, 14), end=(13, 2), w0=2, w1=1, grip=4, grip_c=(190, 150, 100), body=(122, 56, 36),
-        nodes=[], node_c=None, bands=[(0.30, GOLD), (0.55, GOLD), (0.78, GOLD)], guides=[0.45, 0.75, 0.95],
-        reel=None,
-    ),
-    "iso_nami": dict(  # 少し太くしなやかな濃い緑
-        start=(2, 14), end=(12, 2), w0=2, w1=1, grip=4, grip_c=(44, 44, 50), body=(70, 110, 74),
-        nodes=[], node_c=None, bands=[(0.42, (30, 40, 34))], guides=[0.5, 0.75, 0.95], reel=None,
-    ),
-    "iso_jo": dict(  # 紺青の竿・金の巻き・小型リール
-        start=(2, 14), end=(12, 2), w0=2, w1=1, grip=4, grip_c=(40, 40, 46), body=(36, 70, 128),
-        nodes=[], node_c=None, bands=[(0.30, GOLD), (0.50, GOLD), (0.74, GOLD)], guides=[0.5, 0.75, 0.95],
-        reel=(SILVER, 2),
-    ),
-    "fune_nami": dict(  # 短く太い頑丈な竿＋リール
-        start=(3, 14), end=(11, 4), w0=3, w1=2, grip=4, grip_c=(40, 40, 44), body=(84, 88, 98),
-        nodes=[], node_c=None, bands=[(0.40, (50, 52, 60))], guides=[0.7, 0.95], reel=((150, 154, 164), 3),
-    ),
-    "fune_jo": dict(  # 赤黒の竿＋金具が目立つ大型リール
-        start=(3, 14), end=(11, 4), w0=3, w1=2, grip=4, grip_c=(32, 30, 34), body=(176, 44, 44),
-        nodes=[], node_c=None, bands=[(0.30, GOLD), (0.52, GOLD), (0.74, GOLD)], guides=[0.7, 0.95],
-        reel=(GOLD, 3), metal=GOLD,
-    ),
+SPECS = {
+    "bamboo": ("#a4b875", "#d8d899", "#a88760", False, False),
+    "keiryu_nami": ("#637b83", "#9eb3ac", "#bda17f", False, False),
+    "keiryu_jo": ("#716480", "#b49da7", "#c8ad83", False, False),
+    "iso_nami": ("#637b83", "#9eafb2", "#666775", True, False),
+    "iso_jo": ("#586b94", "#a1b8d0", "#595d70", True, False),
+    "fune_nami": ("#677e8b", "#b2bdc5", "#616470", True, True),
+    "fune_jo": ("#9c6570", "#d8a19e", "#545769", True, True),
 }
-ORDER = [("bamboo", "竹竿"), ("keiryu_nami", "渓流竿(並)"), ("keiryu_jo", "渓流竿(上)"),
-         ("iso_nami", "磯竿(並)"), ("iso_jo", "磯竿(上)"), ("fune_nami", "船竿(並)"), ("fune_jo", "船竿(上)")]
 
 
-def draw_rod(s, cast):
-    px = {}
-    sx, sy = s["start"]
-    ex, ey = s["end"]
-    rows = sy - ey
-    for i in range(rows + 1):
-        y = sy - i
-        t = i / rows
-        x = round(sx + (ex - sx) * t)
-        w = max(1, round(s["w0"] + (s["w1"] - s["w0"]) * t))
-        if i < s["grip"]:
-            base = s["grip_c"]
-        else:
-            base = s["body"]
-            for bt, bc in s["bands"]:
-                if abs(t - bt) < 0.5 / rows + 0.02:
-                    base = bc
-            for nt in s["nodes"]:
-                if abs(t - nt) < 0.5 / rows + 0.01:
-                    base = s["node_c"]
-        for k in range(w):
-            c = base
-            if w >= 2 and k == 0:
-                c = light(base, 0.25)
-            elif w >= 2 and k == w - 1:
-                c = dark(base, 0.7)
-            if i < s["grip"] and (x + k + y) % 2 == 0:
-                c = dark(c, 0.8)  # 握りの網目
-            px[(x + k, y)] = c
-        if i == s["grip"] - 1 or i == s["grip"]:
-            for k in range(w):
-                px[(x + k, y)] = s.get("metal", SILVER) if i == s["grip"] else px[(x + k, y)]
-        if any(abs(t - gt) < 0.5 / rows for gt in s["guides"]):
-            px[(x - 1, y)] = light(s.get("metal", SILVER), 0.1)
-    # リール（握りの手前＝右下）
-    if s["reel"]:
-        c, size = s["reel"]
-        rx, ry = sx + s["w0"] + 2, sy - 3
-        for dx in range(size):
-            for dy in range(size):
-                px[(rx + dx, ry + dy)] = c if (dx, dy) != (0, 0) else light(c, 0.4)
-        px[(rx + size, ry)] = dark(c, 0.5)  # ハンドル
-        px[(rx + size, ry - 1)] = dark(c, 0.5)
-        for dy in range(size):
-            px[(rx + size - 1, ry + dy)] = dark(c, 0.75)
-    # 先端と釣り糸
-    tip = (ex + s["w1"], ey - 1)
-    px[tip] = SILVER
+def draw_rod(identifier, cast=False):
+    im, d = canvas()
+    body, high, grip, reel, boat = SPECS[identifier]
+    sx, sy = (3, 14) if boat else (2, 14)
+    ex, ey = (12, 3) if boat else (12, 2)
+    d.line((sx, sy, ex, ey), fill=OUTLINE, width=3)
+    d.line((sx, sy, ex, ey), fill=body, width=2 if boat else 1)
+    # Matte butt grip and bright reel-seat collar, rather than random rings along the blank.
+    d.line((sx, sy, sx + 3, sy - 3), fill=OUTLINE, width=3)
+    d.line((sx, sy, sx + 2, sy - 2), fill=grip, width=2)
+    d.point((sx, sy - 1), fill="#e0d2b8" if not reel else high)
+    d.point((sx + 3, sy - 3), fill=GOLD if identifier.endswith("_jo") else "#c4cdd1")
+    d.point((ex, ey), fill=high)
+    d.point((ex - 2, ey + 2), fill=high)
+    if identifier == "bamboo":
+        for x, y in ((6, 9), (8, 7), (10, 5)):
+            d.line((x, y, x + 1, y), fill="#718c65")
+    elif not reel:
+        # Telescopic joints on a long, reel-less stream rod.
+        d.point((7, 8), fill=GOLD if identifier.endswith("_jo") else "#b1c3c1")
+        d.point((10, 5), fill=high)
+    if reel and not boat:
+        # Spinning reel beneath the rod; bail, spool and a small handle.
+        d.line((5, 11, 7, 12), fill=OUTLINE, width=1)
+        d.rectangle((7, 11, 9, 13), fill=OUTLINE)
+        d.line((7, 11, 9, 11), fill=GOLD if identifier.endswith("_jo") else "#c3cdd0")
+        d.point((8, 12), fill="#c3cdd0")
+        d.line((10, 12, 11, 11), fill=OUTLINE)
+        d.point((11, 10), fill=high)
+    elif boat:
+        # Compact twin-axis reel above the grip, with an off-axis crank.
+        d.rectangle((5, 7, 8, 10), fill=OUTLINE)
+        d.rectangle(
+            (6, 7, 7, 9), fill=GOLD if identifier.endswith("_jo") else "#abb9c3"
+        )
+        d.point((6, 7), fill="#f7dfb1")
+        d.point((8, 10), fill=high)
+        d.line((8, 8, 10, 9), fill=OUTLINE)
+        d.point((11, 9), fill=grip)
+    if reel:
+        for x, y in ((8, 7), (10, 5), (ex, ey)):
+            d.point((x + 1, y), fill="#c8d2d5")
     if not cast:
-        lx, ly = min(tip[0] + 1, 14), tip[1] + 1
-        pts = [(lx, ly + k) for k in range(0, 8)]
-        pts += [(lx - 1, ly + 8), (lx - 1, ly + 9), (lx - 2, ly + 10), (lx - 3, ly + 11)]
-        for p in pts:
-            if p not in px and 0 <= p[0] < N:
-                px[p] = LINE
-    # 縁取り
-    out = {}
-    for (x, y), c in px.items():
-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            q = (x + dx, y + dy)
-            if q not in px and 0 <= q[0] < N and 0 <= q[1] < N and (q not in out):
-                if not (not cast and (x, y) in px and px[(x, y)] == LINE):
-                    out[q] = (28, 22, 14)
-    img = Image.new("RGBA", (N, N), (0, 0, 0, 0))
-    for p, c in out.items():
-        img.putpixel(p, c + (255,))
-    for (x, y), c in px.items():
-        if 0 <= x < N and 0 <= y < N:
-            img.putpixel((x, y), c + (255,))
-    return img
+        # Normal state only. The cast state leaves the line to Minecraft's entity renderer.
+        tx = min(ex + 2, 14)
+        d.line((ex, ey, tx, ey + 1, tx, 10, tx - 2, 12), fill=LINE, width=1)
+        d.line((tx - 2, 12, tx - 3, 12, tx - 3, 11), fill="#9caaaf", width=1)
+    native = ImageDraw.Draw(im)
+    # Fine cork/EVA stipple and a single-pixel specular edge use the native 32px grid.
+    for x, y in (
+        (sx * 2 + 1, sy * 2 - 1),
+        (sx * 2 + 3, sy * 2 - 3),
+        (sx * 2 + 4, sy * 2 - 5),
+    ):
+        if im.getpixel((x, y))[3]:
+            native.point((x, y), fill="#dfc6a0" if not reel else "#929ca6")
+    for k in (4, 7):
+        x = round(sx * 2 + (ex - sx) * 2 * k / 12)
+        y = round(sy * 2 + (ey - sy) * 2 * k / 12)
+        if im.getpixel((x, y))[3]:
+            native.point((x, y), fill=high)
+    return im
 
 
 def main():
-    os.makedirs(TEX_DIR, exist_ok=True)
-    os.makedirs(BUILD_DIR, exist_ok=True)
-    imgs = {}
-    for rid, _ in ORDER:
+    entries = []
+    for identifier, label in RODS:
         for cast in (False, True):
-            img = draw_rod(RODS[rid], cast)
-            img.save(os.path.join(TEX_DIR, rid + ("_cast" if cast else "") + ".png"))
-            imgs[(rid, cast)] = img
-    sheet(imgs)
-
-
-def sheet(imgs):
-    fonts = glob.glob("/System/Library/Fonts/ヒラギノ角ゴシック*") + glob.glob("/System/Library/Fonts/*Hiragino*")
-    font = ImageFont.truetype(fonts[0], 18) if fonts else ImageFont.load_default()
-    sc, pad, lab = 12, 14, 56
-    tile = N * sc
-    W = len(ORDER) * (tile + pad) + pad
-    H = 2 * (tile + pad) + lab + pad
-    out = Image.new("RGB", (W, H), (58, 62, 70))
-    d = ImageDraw.Draw(out)
-    for i, (rid, name) in enumerate(ORDER):
-        x = pad + i * (tile + pad)
-        for row, cast in enumerate((False, True)):
-            y = pad + row * (tile + pad)
-            bg = Image.new("RGB", (tile, tile), (92, 100, 112))
-            big = imgs[(rid, cast)].resize((tile, tile), Image.NEAREST)
-            bg.paste(big, (0, 0), big)
-            out.paste(bg, (x, y))
-        d.text((x, 2 * (tile + pad) + 4), name, font=font, fill=(240, 240, 240))
-        d.text((x, 2 * (tile + pad) + 28), rid, font=font, fill=(170, 176, 186))
-    out.save(os.path.join(BUILD_DIR, "rods_contact_sheet.png"))
+            name = identifier + ("_cast" if cast else "")
+            im = draw_rod(identifier, cast)
+            save(im, "rod", name)
+            entries.append((im, label + ("・投げ" if cast else ""), name))
+    sheet(entries, "rods_contact_sheet.png", columns=7, tile=128)
 
 
 if __name__ == "__main__":

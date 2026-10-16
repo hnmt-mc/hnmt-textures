@@ -11,9 +11,7 @@ mkdir -p "$B"
 if [ "$1" = "3d" ]; then
   rm -rf "$B/stage3d" && mkdir -p "$B/stage3d"
   cp -R resourcepack/pack.mcmeta resourcepack/assets "$B/stage3d/"
-  cp resourcepack/models3d/fish/*.json "$B/stage3d/assets/hnmt/models/item/fish/"
-  cp resourcepack/models3d/rod/*.json "$B/stage3d/assets/hnmt/models/item/rod/"
-  cp resourcepack/models3d/bait/*.json "$B/stage3d/assets/hnmt/models/item/bait/"
+  cp -R resourcepack/models3d/. "$B/stage3d/assets/hnmt/models/item/"
   OUT=hnmt-resourcepack-3d.zip; SRC=$B/stage3d
 else
   OUT=hnmt-resourcepack.zip; SRC=$ROOT/resourcepack
