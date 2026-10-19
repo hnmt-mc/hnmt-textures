@@ -1,7 +1,7 @@
 """Blender で魚の 3D モデル（直方体 elements の JSON）を作り、プレビューも描く（方法B）。
 
 使い方:
-  /Applications/Blender.app/Contents/MacOS/Blender --background --python resourcepack/tools/blender_fish3d.py
+  /Applications/Blender.app/Contents/MacOS/Blender --background --python tools/blender_fish3d.py
 
 やること:
   1. 32x32 のテクスチャ（make_textures.py の出力）を読み、列ごとの「不透明な縦の連なり」を直方体にする。
@@ -9,8 +9,8 @@
   3. 側面(north/south)は絵そのまま、上下・端は端のピクセルの色を引き伸ばす。テクスチャは魚1枚のまま。
   4. 同じ直方体を Blender のメッシュにして、プレビュー画像を描く。
 出力:
-  resourcepack/models3d/fish/<ID>.json       3D モデル（build_zip.sh 3d で pack に入れる。Git で管理する）
-  resourcepack-build/preview3d/<ID>.png      Blender で描いたプレビュー
+  models3d/fish/<ID>.json       3D モデル（build_zip.sh 3d で pack に入れる。Git で管理する）
+  build/preview3d/<ID>.png      Blender で描いたプレビュー
 """
 
 import json
@@ -23,10 +23,10 @@ from mathutils import Vector
 
 ROOT = os.getcwd()  # リポジトリのルートで実行する
 TEX_DIR = os.path.join(
-    ROOT, "resourcepack", "assets", "hnmt", "textures", "item", "fish"
+    ROOT, "assets", "hnmt", "textures", "item", "fish"
 )
-OUT_DIR = os.path.join(ROOT, "resourcepack", "models3d", "fish")
-PREV_DIR = os.path.join(ROOT, "resourcepack-build", "preview3d")
+OUT_DIR = os.path.join(ROOT, "models3d", "fish")
+PREV_DIR = os.path.join(ROOT, "build", "preview3d")
 
 FISH = [
     "unagi",
@@ -273,11 +273,11 @@ def main():
     import subprocess
     import sys
 
-    sys.path.insert(0, os.path.join(ROOT, "resourcepack", "tools"))
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
     subprocess.run(
         [
             "python3",
-            os.path.join(ROOT, "resourcepack", "tools", "make_models.py"),
+            os.path.join(ROOT, "tools", "make_models.py"),
             "--group",
             "fish",
         ],

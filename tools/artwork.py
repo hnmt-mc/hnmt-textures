@@ -3,9 +3,9 @@
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-ROOT = Path(__file__).resolve().parents[2]
-PACK = ROOT / "resourcepack"
-BUILD = ROOT / "resourcepack-build"
+ROOT = Path(__file__).resolve().parents[1]
+PACK = ROOT
+BUILD = ROOT / "build"
 TEXTURES = PACK / "assets/hnmt/textures/item"
 OUTLINE = "#515767"
 CREAM = "#fff0d8"

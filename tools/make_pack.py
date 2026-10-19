@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """pack.mcmeta・items 定義・モデル JSON を作る（テクスチャは make_textures.py / make_rods.py）。
 
-使い方:  python3 resourcepack/tools/make_pack.py
+使い方:  python3 tools/make_pack.py
 pack.mcmeta は、1.21.11 のリソースパック形式 75（client.jar の version.json の resource_major=75 と
 Minecraft Wiki の Pack format 表で確認）に合わせている。
 """
@@ -11,8 +11,8 @@ import os
 from artwork import DISHES, EXTRAS
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-ASSETS = os.path.join(ROOT, "resourcepack", "assets", "hnmt")
-PACK = os.path.join(ROOT, "resourcepack")
+ASSETS = os.path.join(ROOT, "assets", "hnmt")
+PACK = ROOT
 
 FISH = [
     "unagi",

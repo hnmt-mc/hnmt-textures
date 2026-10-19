@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 import bpy
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "resourcepack/tools"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
 import blender_fish3d as legacy
 
 
@@ -17,17 +17,17 @@ def render(group=None):
     scene.view_settings.view_transform = "Standard"
     scene.render.image_settings.file_format = "PNG"
     scene.render.image_settings.color_mode = "RGBA"
-    output = ROOT / "resourcepack-build/preview3d"
+    output = ROOT / "build/preview3d"
     output.mkdir(parents=True, exist_ok=True)
-    for path in sorted((ROOT / "resourcepack/models3d").rglob("*.json")):
-        relative = path.relative_to(ROOT / "resourcepack/models3d")
+    for path in sorted((ROOT / "models3d").rglob("*.json")):
+        relative = path.relative_to(ROOT / "models3d")
         category = relative.parts[0] if len(relative.parts) > 1 else ""
         if group is not None and category != group:
             continue
         data = json.loads(path.read_text())
         texture = data["textures"]["0"].split(":", 1)[1]
         image = bpy.data.images.load(
-            str(ROOT / "resourcepack/assets/hnmt/textures" / Path(texture + ".png")),
+            str(ROOT / "assets/hnmt/textures" / Path(texture + ".png")),
             check_existing=True,
         )
         obj = legacy.build_object(path.stem, data["elements"], image)

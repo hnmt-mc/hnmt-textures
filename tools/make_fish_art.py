@@ -2,7 +2,7 @@
 """魚12種の32x32の編集元（art/fish.json）を、座標と配色の指定から作る。
 
 スロットの中で小さく見えても魚と分かるよう、体を大きく取り、目・ひれ・模様を大きくはっきり描く。
-使い方: python3 resourcepack/tools/make_fish_art.py && python3 resourcepack/tools/make_textures.py
+使い方: python3 tools/make_fish_art.py && python3 tools/make_textures.py
 """
 
 import json

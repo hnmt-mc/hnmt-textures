@@ -2,8 +2,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
-const root = path.resolve(__dirname, '../..');
-const target = path.join(root, 'resourcepack-build/food3d');
+const root = path.resolve(__dirname, '..');
+const target = path.join(root, 'build/food3d');
 const entries = JSON.parse(fs.readFileSync(path.join(target, 'manifest.json'), 'utf8'));
 if (!Array.isArray(entries) || entries.length !== 32 || new Set(entries.map(entry => entry.name)).size !== 32 ||
     entries.some(entry => !/^(sashimi|nigiri|don|grill|simmer|soup)_[a-z]+$/.test(entry.name) ||
@@ -17,7 +17,7 @@ if (!Array.isArray(entries) || entries.length !== 32 || new Set(entries.map(entr
   const page = await browser.newPage({viewport: {width: 1440, height: 1000}});
   await page.goto('https://web.blockbench.net/', {waitUntil: 'domcontentloaded', timeout: 60000});
   await page.waitForFunction(() => typeof Codecs !== 'undefined' && !!Codecs.java_block, null, {timeout: 60000});
-  fs.mkdirSync(path.join(root, 'resourcepack/blockbench/dish'), {recursive:true});
+  fs.mkdirSync(path.join(root, 'blockbench/dish'), {recursive:true});
   const evidence = [];
   for (const entry of entries) {
    const result = await page.evaluate(async entry => {
@@ -46,8 +46,8 @@ if (!Array.isArray(entries) || entries.length !== 32 || new Set(entries.map(entr
     return {java,project,version:Blockbench.version,cubes:Cube.all.length,format:Format.id};
    }, entry);
    if (result.format !== 'java_block' || result.java.elements.length !== entry.model.elements.length) throw new Error('Blockbench dropped cubes: '+entry.name);
-   fs.writeFileSync(path.join(root,'resourcepack/models3d/dish',entry.name+'.json'),JSON.stringify(result.java,null,2)+'\n');
-   fs.writeFileSync(path.join(root,'resourcepack/blockbench/dish',entry.name+'.bbmodel'),typeof result.project==='string'?result.project:JSON.stringify(result.project,null,2));
+   fs.writeFileSync(path.join(root, 'models3d/dish',entry.name+'.json'),JSON.stringify(result.java,null,2)+'\n');
+   fs.writeFileSync(path.join(root, 'blockbench/dish',entry.name+'.bbmodel'),typeof result.project==='string'?result.project:JSON.stringify(result.project,null,2));
    evidence.push({name:entry.name,version:result.version,cubes:result.cubes,format:result.format});
    console.log(entry.name,result.cubes,result.java.textures);
    await page.evaluate(() => {Preview.selected.resize(); Preview.selected.controls.target.set(8,3.5,8);Preview.selected.camera.position.set(20,17,24);Preview.selected.controls.update();Canvas.updateAll();});

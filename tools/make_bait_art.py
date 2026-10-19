@@ -2,7 +2,7 @@
 """餌4種（ミミズ・エビ・イワシ・イカの切り身）の32x32の絵を、座標と配色の指定から作る。
 
 魚・料理と同じく、枠いっぱいに大きく、1ピクセルの暗い輪郭で、種類が色と形で見分けられるようにする。
-使い方: python3 resourcepack/tools/make_bait_art.py
+使い方: python3 tools/make_bait_art.py
 """
 
 import math

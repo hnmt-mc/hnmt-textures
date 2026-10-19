@@ -3,7 +3,7 @@
 
 スロットの中で小さく見えても、何の料理か分かるよう、皿や器を枠いっぱいに取り、
 具の色を種類ごとにはっきり変え、1ピクセルの暗い輪郭で囲む。
-使い方: python3 resourcepack/tools/make_food_art.py
+使い方: python3 tools/make_food_art.py
 """
 
 from PIL import Image, ImageDraw

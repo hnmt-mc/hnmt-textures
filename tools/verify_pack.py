@@ -123,7 +123,7 @@ def verify():
     meta = json.loads((PACK / "pack.mcmeta").read_text())["pack"]
     assert meta["min_format"] == meta["max_format"] == 75
     for variant in ("", "-3d"):
-        archive = BUILD / ("hnmt-resourcepack" + variant + ".zip")
+        archive = BUILD / {"": "hnmt-textures-flat.zip", "-3d": "hnmt-textures.zip"}[variant]
         if not archive.exists():
             continue
         with zipfile.ZipFile(archive) as z:

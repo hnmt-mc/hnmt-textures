@@ -1,9 +1,9 @@
 """Blender 4.x以降で、直方体だけの保冷箱とJava版アイテムモデルを生成する。
 
 実行例:
-  blender --background --factory-startup --python resourcepack/tools/blender_coolers.py -- --render
+  blender --background --factory-startup --python tools/blender_coolers.py -- --render
 
-既存のシーンや配布パックは変更しない。成果物はresourcepack-build/coolerへ出す。
+既存のシーンや配布パックは変更しない。成果物はbuild/coolerへ出す。
 PNGの生成には標準ライブラリだけを使い、色数・輪郭・UVを固定する。
 """
 
@@ -18,7 +18,7 @@ import zlib
 from zipfile import ZIP_DEFLATED, ZipFile
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 SIZES = {"small": (10, 6, 7), "medium": (12, 7, 8), "large": (14, 8, 9)}
 # 輪郭・本体の影/基準/明部・蓋・氷・明るい灰色・留め具/縁の計8色。
 PALETTES = {
@@ -268,7 +268,7 @@ def make_scene(output, models):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / "resourcepack-build/cooler")
+    parser.add_argument("--output", type=Path, default=ROOT / "build/cooler")
     parser.add_argument("--render", action="store_true", help="3種類を並べたBlenderプレビューも出力")
     args = parser.parse_args(argv)
     output = args.output.expanduser().resolve()

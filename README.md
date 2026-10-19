@@ -1,4 +1,19 @@
-# 日ノ本鯖 リソースパック（魚・釣竿・餌の見た目）
+# 日ノ本鯖 テクスチャ（リソースパック）
+
+Minecraft サーバー「日ノ本鯖」の、リソースパックの元データです。魚・料理・餌・釣竿・クーラーボックスの見た目を、アイテムの `item_model`（`hnmt:fish/<ID>` など）で差し替えます。サーバーのプラグイン（[hnmt-core](https://github.com/hnmt-mc/hnmt-core)）は、アイテムの名前を指すだけなので、**このパックがなくても、元のバニラの見た目で動きます**。
+
+## 権利
+**すべての権利を留保します。** このリポジトリは、公開していますが、許可なく、コピー・改変・再配布・他のサーバーでの利用はできません。ライセンス（利用許諾）は、設定していません。魚の元絵には、画像生成の出力を使い、あとから、整えています（作り方は `art/README.md`）。
+
+## 配り方（サーバー運営向け）
+- タグ（`v0.1.0` の形）を push すると、GitHub Actions が、検査して、リリースに2つを付けます。
+  - `hnmt-textures.zip`: 配布用の3D版。
+  - `pack.json`: 更新の情報（`version`・`url`・`sha1`・`id`）。
+- hnmt-core は、`https://github.com/hnmt-mc/hnmt-textures/releases/latest/download/pack.json` を読み、Java版で参加した人へ、パックを送ります（統合版には送りません）。**パックを更新するには、新しいタグを打つだけ**で、サーバーの設定変更も、再起動も要りません（次の参加から、新しい版が配られます）。
+- 手でパックを入れたい人は、[リリース](https://github.com/hnmt-mc/hnmt-textures/releases/latest)から、`hnmt-textures.zip` を、`.minecraft/resourcepacks/` に置いてください。
+
+---
+
 
 釣りの魚、カスタム釣竿、餌の見た目のリソースパックです。プラグイン（hnmt-core）は、アイテムの `item_model` で `hnmt:fish/<ID>`・`hnmt:rod/<ID>`・`hnmt:bait/<ID>` を指しているだけなので、**このパックを入れなければ、元のバニラの見た目で表示されます**（プラグインの動作は変わりません）。
 
@@ -38,14 +53,14 @@
 
 作り直すとき（Blender 4以降。検証は5.2.3）:
 ```sh
-blender --background --factory-startup --python resourcepack/tools/blender_coolers.py -- --render
-python3 -m unittest discover -s resourcepack/tools -p 'test_blender_coolers.py'
+blender --background --factory-startup --python tools/blender_coolers.py -- --render
+python3 -m unittest discover -s tools -p 'test_blender_coolers.py'
 ```
-`resourcepack-build/cooler/` に、プレビュー（`preview.png`）と、置き換え用のファイルが出ます。ゲーム内での見え方は未確認です。
+`build/cooler/` に、プレビュー（`preview.png`）と、置き換え用のファイルが出ます。ゲーム内での見え方は未確認です。
 
 ## 2つの版
-- **平らなアイコン版**（`hnmt-resourcepack.zip`）: バニラの魚と同じ見せ方。
-- **3D版**（`hnmt-resourcepack-3d.zip`）: 魚は、胴の断面を楕円にして、背と腹に向かって薄くなる丸みを付けています（魚1匹あたり直方体は80〜120個）。餌・米・いくらは、正面が2Dの絵のままで、奥行きは後ろへ伸びる輪切りです。料理32品は、底・側面・縁のある器と、ご飯・具材・薬味を別々の直方体で組み、1品1枚の32×32テクスチャを使います。料理にはJava版で対応するY軸22.5度・45度の回転があり、統合版への変換は未検証です。釣竿は、3D版でも、平らなアイコンのままです（竿は細く、立体にすると不自然になるため）。上面・下面・端の面は、輪郭の暗い線を除いた中身の色です。
+- **平らなアイコン版**（`hnmt-textures-flat.zip`）: バニラの魚と同じ見せ方。
+- **3D版**（`hnmt-textures.zip`）: 魚は、胴の断面を楕円にして、背と腹に向かって薄くなる丸みを付けています（魚1匹あたり直方体は80〜120個）。餌・米・いくらは、正面が2Dの絵のままで、奥行きは後ろへ伸びる輪切りです。料理32品は、底・側面・縁のある器と、ご飯・具材・薬味を別々の直方体で組み、1品1枚の32×32テクスチャを使います。料理にはJava版で対応するY軸22.5度・45度の回転があり、統合版への変換は未検証です。釣竿は、3D版でも、平らなアイコンのままです（竿は細く、立体にすると不自然になるため）。上面・下面・端の面は、輪郭の暗い線を除いた中身の色です。
 
 ## 料理の3Dモデルを編集する
 
@@ -65,35 +80,35 @@ Block/Item Modelを書き出す先は `models3d/dish/<ID>.json` です。
 座標から再生成する場合は、次のコマンドを使います。生成済みファイルへの手動編集は上書きされるので、先に保存・コミットしてください。
 
 ```sh
-python3 resourcepack/tools/make_food_models.py
+python3 tools/make_food_models.py
 ```
 
 Blockbench本体で編集元・JSON・プレビューを再書き出しする場合は、Node.jsとPlaywrightが必要です。
 作業用の依存関係は配布パックに入りません。Web版に接続できる環境で実行してください。
 
 ```sh
-npm install --prefix resourcepack-build/blockbench-tools playwright
-resourcepack-build/blockbench-tools/node_modules/.bin/playwright install chromium
-PLAYWRIGHT_MODULE="$(pwd)/resourcepack-build/blockbench-tools/node_modules/playwright" \
-  node resourcepack/tools/blockbench_food.cjs
-python3 resourcepack/tools/make_food_models.py --review
-python3 -m unittest discover -s resourcepack/tools -p test_food_models.py
-sh resourcepack/tools/build_zip.sh 3d
-python3 resourcepack/tools/verify_pack.py
+npm install --prefix build/blockbench-tools playwright
+build/blockbench-tools/node_modules/.bin/playwright install chromium
+PLAYWRIGHT_MODULE="$(pwd)/build/blockbench-tools/node_modules/playwright" \
+  node tools/blockbench_food.cjs
+python3 tools/make_food_models.py --review
+python3 -m unittest discover -s tools -p test_food_models.py
+sh tools/build_zip.sh
+python3 tools/verify_pack.py
 ```
 
-個別プレビューと32品の一覧は `resourcepack-build/food3d/` に出力します。
+個別プレビューと32品の一覧は `build/food3d/` に出力します。
 ゲーム内のGUI・手持ち表示と、Geyserでの表示は未検証です。
 
 ## zip を作る
 ```sh
-sh resourcepack/tools/build_zip.sh      # 平らなアイコン版
-sh resourcepack/tools/build_zip.sh 3d   # 3D版
+sh tools/build_zip.sh        # 3D版（hnmt-textures.zip）
+sh tools/build_zip.sh flat   # 平らなアイコン版（hnmt-textures-flat.zip）
 ```
-`resourcepack-build/` に zip ができ（Git には入れません）、SHA-1 が表示されます。3D版のモデルは `models3d` にあるので、Blender は要りません。
+`build/` に zip ができ（Git には入れません）、SHA-1 が表示されます。リリース用の `pack.json` は、`python3 tools/make_manifest.py v0.1.0` で作れます（タグは、実際のリリースで、自動で付きます）。3D版のモデルは `models3d` にあるので、Blender は要りません。
 
-## サーバーへ配る
-zip を、サーバーから直接ダウンロードできる URL に置き、`server.properties` に設定します。
+## サーバーへ配る（手動）
+プラグインを使わずに配るときは、zip を、サーバーから直接ダウンロードできる URL に置き、`server.properties` に設定します。
 ```properties
 resource-pack=<zip の URL>
 resource-pack-sha1=<build_zip.sh が表示した SHA-1>
@@ -106,20 +121,20 @@ require-resource-pack=false
 Python 3とPillow、プレビューにはBlenderを使用します。検証環境はBlender 5.2.3です。
 
 ```sh
-python3 -m venv resourcepack-build/venv
-resourcepack-build/venv/bin/pip install -r resourcepack/tools/requirements.txt
-resourcepack-build/venv/bin/python resourcepack/tools/make_fish_art.py
-resourcepack-build/venv/bin/python resourcepack/tools/make_textures.py
-resourcepack-build/venv/bin/python resourcepack/tools/make_rods.py
-resourcepack-build/venv/bin/python resourcepack/tools/make_bait_art.py
-resourcepack-build/venv/bin/python resourcepack/tools/make_food_art.py
-resourcepack-build/venv/bin/python resourcepack/tools/make_pack.py
-resourcepack-build/venv/bin/python resourcepack/tools/make_models.py
-/Applications/Blender.app/Contents/MacOS/Blender --background --python resourcepack/tools/blender_preview.py
-resourcepack-build/venv/bin/python resourcepack/tools/make_3d_sheet.py
-sh resourcepack/tools/build_zip.sh
-sh resourcepack/tools/build_zip.sh 3d
-resourcepack-build/venv/bin/python resourcepack/tools/verify_pack.py
+python3 -m venv build/venv
+build/venv/bin/pip install -r tools/requirements.txt
+build/venv/bin/python tools/make_fish_art.py
+build/venv/bin/python tools/make_textures.py
+build/venv/bin/python tools/make_rods.py
+build/venv/bin/python tools/make_bait_art.py
+build/venv/bin/python tools/make_food_art.py
+build/venv/bin/python tools/make_pack.py
+build/venv/bin/python tools/make_models.py
+/Applications/Blender.app/Contents/MacOS/Blender --background --python tools/blender_preview.py
+build/venv/bin/python tools/make_3d_sheet.py
+sh tools/build_zip.sh
+sh tools/build_zip.sh flat
+build/venv/bin/python tools/verify_pack.py
 ```
 
 `make_models.py`はBlenderを使わず、テクスチャ1枚と軸に沿った直方体だけでJSONを作ります。
@@ -127,6 +142,6 @@ resourcepack-build/venv/bin/python resourcepack/tools/verify_pack.py
 既存の`blender_fish3d.py`・`blender_rod3d.py`・`blender_bait3d.py`は分類ごとの再生成とプレビュー用です。
 これらは`python3`からPillowを読み込める環境で実行してください。
 
-一覧画像は`resourcepack-build/`、全65種類の個別プレビューは`resourcepack-build/preview3d/`へ出力します。
+一覧画像は`build/`、全65種類の個別プレビューは`build/preview3d/`へ出力します。
 制作物とプレビューはゲーム内検証の代わりにはなりません。Geyser/Rainbowでの変換、
 ゲーム内の手持ち角度・額縁・GUIでの表示、料理の機能との接続は未検証です。

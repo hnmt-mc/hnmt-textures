@@ -1,0 +1,39 @@
+name: release
+
+# タグ（v1.2.3 の形）を push すると、検査して、配布用の zip と pack.json を、リリースに付ける。
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 道具の依存を入れる
+        run: python -m pip install -r tools/requirements.txt
+      - name: 検査（パックの構造・料理のモデル・pack.json の作り）
+        run: |
+          python tools/verify_pack.py
+          python -m unittest discover -s tools -p 'test_food_models.py'
+          python -m unittest discover -s tools -p 'test_make_manifest.py'
+          python -m unittest discover -s tools -p 'test_blender_coolers.py'
+      - name: zip を作る
+        run: |
+          sh tools/build_zip.sh
+          sh tools/build_zip.sh flat
+          python tools/verify_pack.py
+      - name: pack.json を作る
+        run: python tools/make_manifest.py "$GITHUB_REF_NAME"
+      - name: リリースに付ける
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" build/hnmt-textures.zip build/hnmt-textures-flat.zip build/pack.json \
+            --title "$GITHUB_REF_NAME" --notes "3D版（hnmt-textures.zip）が、サーバーから送られるパックです。pack.json は、更新の情報です。"
