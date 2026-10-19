@@ -33,6 +33,16 @@
 
 [絵の編集元・種類ごとの特徴・実物の釣竿の参考資料](art/README.md)も参照してください。
 
+## クーラーボックス
+魚専用の持ち運び箱（`hnmt:cooler/small`・`medium`・`large`）の見た目です。テクスチャは32x32で、輪郭と本体・蓋・氷・留め具の8色だけで描いています。モデルは直方体6〜8個の3Dで、平らなアイコン版・3D版のどちらの zip にも同じものが入ります。パックがなければ、元の樽のまま表示されます。
+
+作り直すとき（Blender 4以降。検証は5.2.3）:
+```sh
+blender --background --factory-startup --python resourcepack/tools/blender_coolers.py -- --render
+python3 -m unittest discover -s resourcepack/tools -p 'test_blender_coolers.py'
+```
+`resourcepack-build/cooler/` に、プレビュー（`preview.png`）と、置き換え用のファイルが出ます。ゲーム内での見え方は未確認です。
+
 ## 2つの版
 - **平らなアイコン版**（`hnmt-resourcepack.zip`）: バニラの魚と同じ見せ方。
 - **3D版**（`hnmt-resourcepack-3d.zip`）: 魚は、胴の断面を楕円にして、背と腹に向かって薄くなる丸みを付けています（魚1匹あたり直方体は80〜120個）。餌・米・いくらは、正面が2Dの絵のままで、奥行きは後ろへ伸びる輪切りです。料理32品は、底・側面・縁のある器と、ご飯・具材・薬味を別々の直方体で組み、1品1枚の32×32テクスチャを使います。料理にはJava版で対応するY軸22.5度・45度の回転があり、統合版への変換は未検証です。釣竿は、3D版でも、平らなアイコンのままです（竿は細く、立体にすると不自然になるため）。上面・下面・端の面は、輪郭の暗い線を除いた中身の色です。
