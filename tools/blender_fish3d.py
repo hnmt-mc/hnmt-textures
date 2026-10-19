@@ -249,7 +249,7 @@ def setup_scene():
     cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
     cam.data.type = "ORTHO"
     cam.data.ortho_scale = 2.3
-    yaw, pitch, dist = math.radians(28), math.radians(16), 6
+    yaw, pitch, dist = math.radians(42), math.radians(30), 6
     cam.location = (
         math.sin(yaw) * dist * math.cos(pitch) * -1,
         -math.cos(yaw) * dist * math.cos(pitch),

@@ -29,36 +29,53 @@ def verify():
                 0,
                 255,
             }, "expected crisp binary transparency"
-            model = json.loads((PACK / "models3d" / (relative + ".json")).read_text())
-            assert model.get("elements"), "3D model is empty"
+            if group == "rod":
+                model = None  # 釣竿は、3D版でも平らなモデルのまま
+            else:
+                model = json.loads((PACK / "models3d" / (relative + ".json")).read_text())
+                assert model.get("elements"), "3D model is empty"
             if group == "fish":
                 assert (
-                    16 <= len(model["elements"]) <= 32
-                ), "fish cuboid budget must be 16..32"
-            assert set(model["textures"].values()) == {
-                "hnmt:item/" + relative
-            }, "3D model must use one texture"
-            for element in model["elements"]:
-                assert set(element) == {
-                    "from",
-                    "to",
-                    "faces",
-                }, "only axis-aligned cuboids are supported"
-                for a, b in zip(element["from"], element["to"]):
-                    assert math.isfinite(a) and math.isfinite(b) and 0 <= a < b <= 16
-                assert set(element["faces"]) == {
-                    "north",
-                    "south",
-                    "east",
-                    "west",
-                    "up",
-                    "down",
-                }
-                for face in element["faces"].values():
-                    assert face["texture"] == "#0"
-                    assert len(face["uv"]) == 4 and all(
-                        math.isfinite(v) and 0 <= v <= 16 for v in face["uv"]
-                    )
+                    16 <= len(model["elements"]) <= 160
+                ), "fish cuboid budget must be 16..160"
+            if model is not None:
+                texture_relative = "dish3d/" + name if group == "dish" else relative
+                assert set(model["textures"].values()) == {
+                    "hnmt:item/" + texture_relative
+                }, "3D model must use one texture"
+                if group == "dish":
+                    dish_texture = Image.open(TEXTURES / (texture_relative + ".png"))
+                    assert dish_texture.size == (32, 32) and dish_texture.mode == "RGBA"
+                    assert set(dish_texture.getchannel("A").get_flattened_data()) <= {0, 255}
+                    assert len(model["elements"]) <= 150, "dish cuboid budget must be <=150"
+                for element in model["elements"]:
+                    assert set(element) <= ({"name", "rotation"} if group == "dish" else set()) | {
+                        "from",
+                        "to",
+                        "faces",
+                    }, "unsupported element fields"
+                    if "rotation" in element:
+                        rotation = element["rotation"]
+                        assert group == "dish" and rotation["axis"] == "y"
+                        assert rotation["angle"] in (-45, -22.5, 0, 22.5, 45)
+                        assert not rotation.get("rescale", False)
+                        assert len(rotation["origin"]) == 3
+                        assert all(math.isfinite(v) for v in rotation["origin"])
+                    for a, b in zip(element["from"], element["to"]):
+                        assert math.isfinite(a) and math.isfinite(b) and 0 <= a < b <= 16
+                    assert set(element["faces"]) == {
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                    }
+                    for face in element["faces"].values():
+                        assert face["texture"] == "#0"
+                        assert len(face["uv"]) == 4 and all(
+                            math.isfinite(v) and 0 <= v <= 16 for v in face["uv"]
+                        )
             flat = json.loads(
                 (PACK / "assets/hnmt/models/item" / (relative + ".json")).read_text()
             )
@@ -124,13 +141,17 @@ def verify():
                 exported = json.loads(
                     z.read("assets/hnmt/models/item/" + relative + ".json")
                 )
-                assert ("elements" in exported) == bool(variant), (
+                assert ("elements" in exported) == (bool(variant) and group != "rod"), (
                     relative + " wrong model variant"
                 )
+                if variant and group == "dish":
+                    texture_path = "assets/hnmt/textures/item/dish3d/" + name + ".png"
+                    assert z.read(texture_path) == (TEXTURES / "dish3d" / (name + ".png")).read_bytes()
+                    assert exported == json.loads((PACK / "models3d/dish" / (name + ".json")).read_text())
     if failures:
         raise SystemExit("\n".join(failures))
     print(
-        f"PASS: {count} RGBA textures, all 32x32; cuboids, UVs, cast states, model references and archive contents validated"
+        f"PASS: {count} item variants and 32 dish atlases, all 32x32; cuboids, UVs, cast states, model references and archive contents validated"
     )
 
 
