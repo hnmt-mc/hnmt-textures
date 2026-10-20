@@ -154,6 +154,63 @@ class RealModelTests(unittest.TestCase):
             json.dumps(doc)
 
 
+class AllItemsTests(unittest.TestCase):
+    ROOT = None
+
+    @classmethod
+    def setUpClass(cls):
+        import os
+        cls.ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+
+    def bases(self):
+        import json
+        import os
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "bedrock_bases.json"), encoding="utf-8") as handle:
+            return json.load(handle)
+
+    def model_items(self):
+        """パックにある、3Dモデルを持つ品（models3d の全部と、assets のクーラーボックス）。"""
+        import glob
+        import os
+        items = set()
+        for path in glob.glob(os.path.join(self.ROOT, "models3d", "**", "*.json"), recursive=True):
+            items.add(os.path.relpath(path, os.path.join(self.ROOT, "models3d"))[:-5])
+        for path in glob.glob(os.path.join(self.ROOT, "assets", "hnmt", "models", "item", "cooler", "*.json")):
+            items.add("cooler/" + os.path.basename(path)[:-5])
+        return items
+
+    def test_every_3d_item_has_a_base_item_and_nothing_else_does(self):
+        self.assertEqual(set(self.bases()), self.model_items())
+
+    def test_every_base_is_a_vanilla_item(self):
+        for item, base in self.bases().items():
+            self.assertRegex(base, r"^minecraft:[a-z_]+$", item)
+
+    def test_the_whole_pack_builds_and_every_reference_exists(self):
+        import json
+        import os
+        import tempfile
+        with tempfile.TemporaryDirectory() as out:
+            make_bedrock.build_pack(self.ROOT, out, self.bases(), "v0.1.0")
+            pack = os.path.join(out, "pack")
+            with open(os.path.join(pack, "textures", "item_texture.json"), encoding="utf-8") as handle:
+                atlas = json.load(handle)
+            self.assertEqual(len(atlas["texture_data"]), len(self.bases()))
+            for entry in atlas["texture_data"].values():
+                self.assertTrue(os.path.exists(os.path.join(pack, entry["textures"][0] + ".png")))
+            for item in self.bases():
+                name = make_bedrock.safe_name(item)
+                for path in ("models/entity/hnmt_%s.geo.json", "animations/hnmt_%s.animation.json", "attachables/hnmt_%s.json",
+                             "textures/entity/hnmt/%s.png"):
+                    self.assertTrue(os.path.exists(os.path.join(pack, path % name)), path % name)
+            with open(os.path.join(out, "custom_mappings", "hnmt.json"), encoding="utf-8") as handle:
+                mappings = json.load(handle)
+            models = [d["model"] for defs in mappings["items"].values() for d in defs]
+            self.assertEqual(len(models), len(set(models)), "同じ model が2回ある")
+            identifiers = [d["bedrock_identifier"] for defs in mappings["items"].values() for d in defs]
+            self.assertEqual(len(identifiers), len(set(identifiers)))
+
+
 if __name__ == "__main__":
     unittest.main()
 
