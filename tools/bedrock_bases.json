@@ -52,5 +52,12 @@
   "fish/tai": "minecraft:tropical_fish",
   "fish/unagi": "minecraft:cod",
   "ikura": "minecraft:orange_dye",
-  "rice": "minecraft:sugar"
+  "rice": "minecraft:sugar",
+  "rod/bamboo": "minecraft:fishing_rod",
+  "rod/fune_jo": "minecraft:fishing_rod",
+  "rod/fune_nami": "minecraft:fishing_rod",
+  "rod/iso_jo": "minecraft:fishing_rod",
+  "rod/iso_nami": "minecraft:fishing_rod",
+  "rod/keiryu_jo": "minecraft:fishing_rod",
+  "rod/keiryu_nami": "minecraft:fishing_rod"
 }
