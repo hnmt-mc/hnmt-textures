@@ -10,6 +10,10 @@ Minecraft サーバー「日ノ本鯖」の、リソースパックの元デー�
   - `hnmt-textures.zip`: 配布用の3D版。
   - `pack.json`: 更新の情報（`version`・`url`・`sha1`・`id`）。
 - hnmt-core は、`https://github.com/hnmt-mc/hnmt-textures/releases/latest/download/pack.json` を読み、Java版で参加した人へ、パックを送ります（統合版には送りません）。**パックを更新するには、新しいタグを打つだけ**で、サーバーの設定変更も、再起動も要りません（次の参加から、新しい版が配られます）。
+- 統合版（Geyser）用には、リリースに、さらに3つが付きます（くわしくは下の「統合版（Geyser）」）。
+  - `hnmt-bedrock.mcpack`: 統合版用のパック。
+  - `hnmt.json`: Geyser のカスタムアイテムの対応づけ。
+  - `bedrock.json`: 更新の情報（各ファイルの `name`・`target`・`url`・`sha1`）。
 - 手でパックを入れたい人は、[リリース](https://github.com/hnmt-mc/hnmt-textures/releases/latest)から、`hnmt-textures.zip` を、`.minecraft/resourcepacks/` に置いてください。
 
 ---
@@ -57,6 +61,41 @@ blender --background --factory-startup --python tools/blender_coolers.py -- --re
 python3 -m unittest discover -s tools -p 'test_blender_coolers.py'
 ```
 `build/cooler/` に、プレビュー（`preview.png`）と、置き換え用のファイルが出ます。ゲーム内での見え方は未確認です。
+
+## 統合版（Geyser）
+
+統合版のプレイヤーには、Java 版のパックは送られません。かわりに、3Dモデルのある品を、統合版用のパックと Geyser の対応づけに直して、リリースに付けます。
+
+| ファイル | 置き先（Geyser のフォルダの中） | 内容 |
+| --- | --- | --- |
+| `hnmt-bedrock.mcpack` | `packs/` | 統合版用のパック（ジオメトリ・attachable・アニメーション・アイコン） |
+| `hnmt.json` | `custom_mappings/` | `item_model` と、統合版のアイテムの対応づけ（カスタムアイテム API の形式2） |
+| `bedrock.json` | （置かない） | 更新の情報。置くファイルの名前・置き先・URL・SHA-1 |
+
+### 対象
+- 魚12・餌4・料理32・クーラーボックス3・米・いくら・まな板の、**54品**。
+- **釣竿は入れません。** 統合版では、釣竿をカスタムアイテムにすると、釣りボタンが出ず、手に持つ向きも反転するためです。ふつうの釣竿のままです。
+
+### 自動で置く
+hnmt-core のリポジトリの `geyserpacks/`（`hnmt-geyserpacks.jar`）が、`bedrock.json` を取って、Geyser のフォルダに置きます。Paper（Geyser-Spigot）と Velocity（Geyser-Velocity）の両方で動きます。置いたあとは、**Geyser の再起動で反映**されます。
+
+### 作り方
+```sh
+python3 tools/make_bedrock.py . build/bedrock v0.1.0     # パックと対応づけ
+python3 tools/make_bedrock_manifest.py v0.1.0 build/bedrock   # bedrock.json
+python3 -m unittest discover -s tools -p 'test_make_bedrock*.py'
+```
+- 変換は `tools/make_bedrock.py` です。Java 版の直方体（`elements`）を、統合版の `cube` に直します。x 軸を逆向きにし、上と下の面の UV を入れ替え、回転は x 軸の角度の向きを逆にします（Geyser の変換 mod Rainbow と同じ規則）。
+- 元の Java のアイテム（魚は `minecraft:tropical_fish` など）の表は `tools/bedrock_bases.json` です。hnmt-core の `config.yml` の `base`（魚の段階・餌・料理の種類）と、コードの定数から作ります。**hnmt-core 側で元のアイテムを変えたら、この表も直します。** hnmt-core のテスト（`BedrockBasesTest`）が、食い違いを見つけます。そのときは、この表を直して新しいタグを打ち、テストの写し（`src/test/resources/bedrock_bases.json`）も同じに直します。
+- Geyser は、起動のときにしかファイルを読みません。
+
+### 向きの決め方
+- 一人称の回転は、Rainbow の式ではなく、**実機の統合版で見比べて決めた式**（回転 = `[-ry, rz, rx]`）です。Rainbow の式のままだと、尻尾か真正面を向きました。
+- 三人称と、頭に乗せたときは、Rainbow の式のままで、**まだ実機で見比べていません。**
+
+### 確認したこと・未確認
+- 変換・パック・対応づけの構造は、単体テストで確かめています。統合版の端末で、持ち物の中の絵と、一人称の見た目を確かめました（品によっては、未確認）。
+- 未確認: 三人称、頭に乗せたとき、床に落ちたとき、額縁、Velocity での動き。
 
 ## 2つの版
 - **平らなアイコン版**（`hnmt-textures-flat.zip`）: バニラの魚と同じ見せ方。
