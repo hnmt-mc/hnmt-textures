@@ -24,6 +24,7 @@ jobs:
           python -m unittest discover -s tools -p 'test_food_models.py'
           python -m unittest discover -s tools -p 'test_make_manifest.py'
           python -m unittest discover -s tools -p 'test_blender_coolers.py'
+          python -m unittest discover -s tools -p 'test_make_bedrock*.py'
       - name: zip を作る
         run: |
           sh tools/build_zip.sh
@@ -31,9 +32,14 @@ jobs:
           python tools/verify_pack.py
       - name: pack.json を作る
         run: python tools/make_manifest.py "$GITHUB_REF_NAME"
+      - name: 統合版のパックと bedrock.json を作る
+        run: |
+          python tools/make_bedrock.py . build/bedrock "$GITHUB_REF_NAME"
+          python tools/make_bedrock_manifest.py "$GITHUB_REF_NAME" build/bedrock
       - name: リリースに付ける
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" build/hnmt-textures.zip build/hnmt-textures-flat.zip build/pack.json \
-            --title "$GITHUB_REF_NAME" --notes "3D版（hnmt-textures.zip）が、サーバーから送られるパックです。pack.json は、更新の情報です。"
+            build/bedrock/hnmt-bedrock.mcpack build/bedrock/custom_mappings/hnmt.json build/bedrock/bedrock.json \
+            --title "$GITHUB_REF_NAME" --notes "3D版（hnmt-textures.zip）が、Java版のサーバーから送られるパックです。pack.json は、その更新の情報です。hnmt-bedrock.mcpack と hnmt.json は、統合版（Geyser）用のパックと対応づけで、bedrock.json は、その更新の情報です。"
