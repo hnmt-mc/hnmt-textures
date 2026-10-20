@@ -108,7 +108,8 @@ def _display(display, key):
 def display_to_animations(display, identifier):
     """display の firstperson・thirdperson・head を、3つのアニメーションにする。軸の入れ替えは Rainbow の挙動と同じ。"""
     rotation, translation, scale = _display(display, "firstperson_righthand")
-    first = {"rotation": [-90 + rotation[1], -rotation[2], rotation[0]],
+    # 一人称の回転は、Rainbow の式と違う（実機の統合版で見比べて、一番見やすかった向きに合わせた）
+    first = {"rotation": [-rotation[1], rotation[2], rotation[0]],
              "position": [-translation[1], 12.5 + translation[2], translation[0]], "scale": scale}
     rotation, translation, scale = _display(display, "thirdperson_righthand")
     third = {"rotation": [90, -rotation[2], -rotation[1]],

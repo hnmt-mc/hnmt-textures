@@ -171,9 +171,9 @@ class AnimationTests(unittest.TestCase):
     def bones(self, display):
         return make_bedrock.display_to_animations(display, "hnmt_fish_tai")["animations"]
 
-    def test_the_first_person_view_swaps_the_axes_and_adds_the_base_offset(self):
+    def test_the_first_person_view_swaps_the_axes_and_lifts_the_position(self):
         bone = self.bones(self.DISPLAY)["animation.hnmt_fish_tai.hold_first_person"]["bones"]["model"]
-        self.assertEqual(bone["rotation"], [-70, -30, 10])
+        self.assertEqual(bone["rotation"], [-20, 30, 10])
         self.assertEqual(bone["position"], [-2, 15.5, 1])
         self.assertEqual(bone["scale"], [0.5, 0.5, 0.5])
 
@@ -192,7 +192,7 @@ class AnimationTests(unittest.TestCase):
     def test_a_missing_display_uses_the_java_defaults(self):
         bones = self.bones({})
         first = bones["animation.hnmt_fish_tai.hold_first_person"]["bones"]["model"]
-        self.assertEqual(first["rotation"], [-90, 0, 0])
+        self.assertEqual(first["rotation"], [0, 0, 0])
         self.assertEqual(first["position"], [0, 12.5, 0])
         self.assertEqual(first["scale"], [1, 1, 1])
 
