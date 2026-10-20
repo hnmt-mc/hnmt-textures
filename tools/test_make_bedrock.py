@@ -177,6 +177,8 @@ class AllItemsTests(unittest.TestCase):
             items.add(os.path.relpath(path, os.path.join(self.ROOT, "models3d"))[:-5])
         for path in glob.glob(os.path.join(self.ROOT, "assets", "hnmt", "models", "item", "cooler", "*.json")):
             items.add("cooler/" + os.path.basename(path)[:-5])
+        for path in glob.glob(os.path.join(self.ROOT, "assets", "hnmt", "items", "rod", "*.json")):
+            items.add("rod/" + os.path.basename(path)[:-5])
         return items
 
     def test_every_3d_item_has_a_base_item_and_nothing_else_does(self):
@@ -195,18 +197,21 @@ class AllItemsTests(unittest.TestCase):
             pack = os.path.join(out, "pack")
             with open(os.path.join(pack, "textures", "item_texture.json"), encoding="utf-8") as handle:
                 atlas = json.load(handle)
-            self.assertEqual(len(atlas["texture_data"]), len(self.bases()))
+            rods = [item for item in self.bases() if item.startswith("rod/")]
+            self.assertEqual(len(atlas["texture_data"]), len(self.bases()) + len(rods), "釣竿は、投げた状態の絵も入る")
             for entry in atlas["texture_data"].values():
                 self.assertTrue(os.path.exists(os.path.join(pack, entry["textures"][0] + ".png")))
             for item in self.bases():
                 name = make_bedrock.safe_name(item)
+                if item.startswith("rod/"):
+                    continue
                 for path in ("models/entity/hnmt_%s.geo.json", "animations/hnmt_%s.animation.json", "attachables/hnmt_%s.json",
                              "textures/entity/hnmt/%s.png"):
                     self.assertTrue(os.path.exists(os.path.join(pack, path % name)), path % name)
             with open(os.path.join(out, "custom_mappings", "hnmt.json"), encoding="utf-8") as handle:
                 mappings = json.load(handle)
-            models = [d["model"] for defs in mappings["items"].values() for d in defs]
-            self.assertEqual(len(models), len(set(models)), "同じ model が2回ある")
+            models = [(d["model"], json.dumps(d.get("predicate"))) for defs in mappings["items"].values() for d in defs]
+            self.assertEqual(len(models), len(set(models)), "同じ model と条件の組が2回ある")
             identifiers = [d["bedrock_identifier"] for defs in mappings["items"].values() for d in defs]
             self.assertEqual(len(identifiers), len(set(identifiers)))
 
@@ -319,6 +324,47 @@ class MappingTests(unittest.TestCase):
         doc = make_bedrock.build_item_atlas(["fish/tai"])
         self.assertEqual(doc["texture_data"]["hnmt.fish_tai"], {"textures": ["textures/items/hnmt/fish_tai"]})
         self.assertEqual(doc["texture_name"], "atlas.items")
+
+
+class FlatItemTests(unittest.TestCase):
+    def test_a_flat_item_has_a_plain_definition_that_holds_like_a_tool(self):
+        doc = make_bedrock.build_mappings({"rod/bamboo": "minecraft:fishing_rod"}, flat={"rod/bamboo"})
+        plain = [d for d in doc["items"]["minecraft:fishing_rod"] if "predicate" not in d]
+        self.assertEqual(len(plain), 1)
+        self.assertEqual(plain[0]["model"], "hnmt:rod/bamboo")
+        self.assertEqual(plain[0]["bedrock_identifier"], "hnmt:rod_bamboo")
+        self.assertIs(plain[0]["bedrock_options"]["display_handheld"], True)
+
+    def test_a_cast_state_is_a_separate_definition_with_the_cast_predicate_listed_first(self):
+        doc = make_bedrock.build_mappings({"rod/bamboo": "minecraft:fishing_rod"}, flat={"rod/bamboo"}, cast={"rod/bamboo"})
+        definitions = doc["items"]["minecraft:fishing_rod"]
+        self.assertEqual(len(definitions), 2)
+        self.assertEqual(definitions[0]["predicate"], {"type": "condition", "property": "fishing_rod_cast"})
+        self.assertEqual(definitions[0]["bedrock_identifier"], "hnmt:rod_bamboo_cast")
+        self.assertEqual(definitions[0]["bedrock_options"]["icon"], "hnmt.rod_bamboo_cast")
+        self.assertEqual(definitions[0]["model"], "hnmt:rod/bamboo")
+        self.assertNotIn("predicate", definitions[1])
+
+    def test_a_three_d_item_is_not_held_like_a_tool(self):
+        doc = make_bedrock.build_mappings({"fish/tai": "minecraft:tropical_fish"})
+        self.assertIs(doc["items"]["minecraft:tropical_fish"][0]["bedrock_options"]["display_handheld"], False)
+
+    def test_the_atlas_lists_the_cast_icon_too(self):
+        doc = make_bedrock.build_item_atlas(["rod/bamboo", "fish/tai"], cast={"rod/bamboo"})
+        self.assertEqual(set(doc["texture_data"]), {"hnmt.rod_bamboo", "hnmt.rod_bamboo_cast", "hnmt.fish_tai"})
+        self.assertEqual(doc["texture_data"]["hnmt.rod_bamboo_cast"], {"textures": ["textures/items/hnmt/rod_bamboo_cast"]})
+
+    def test_building_a_rod_writes_both_icons_and_no_geometry(self):
+        import os
+        import tempfile
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+        with tempfile.TemporaryDirectory() as out:
+            make_bedrock.build_pack(root, out, {"rod/bamboo": "minecraft:fishing_rod"}, "v0.1.0")
+            pack = os.path.join(out, "pack")
+            self.assertTrue(os.path.exists(os.path.join(pack, "textures/items/hnmt/rod_bamboo.png")))
+            self.assertTrue(os.path.exists(os.path.join(pack, "textures/items/hnmt/rod_bamboo_cast.png")))
+            self.assertFalse(os.path.exists(os.path.join(pack, "attachables/hnmt_rod_bamboo.json")))
+            self.assertFalse(os.path.exists(os.path.join(pack, "models/entity/hnmt_rod_bamboo.geo.json")))
 
 
 class IdentifierTests(unittest.TestCase):

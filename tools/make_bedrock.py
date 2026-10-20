@@ -165,22 +165,41 @@ def build_manifest(tag):
                          "description": "日ノ本鯖のアイテムの見た目", "version": version}]}
 
 
-def build_item_atlas(item_ids):
-    return {"resource_pack_name": NAMESPACE, "texture_name": "atlas.items",
-            "texture_data": {"%s.%s" % (NAMESPACE, safe_name(item)): {"textures": ["textures/items/%s/%s" % (NAMESPACE, safe_name(item))]}
-                             for item in item_ids}}
+def build_item_atlas(item_ids, cast=()):
+    """持ち物の中の絵の一覧。cast は、投げた状態の絵も持つ品（釣竿）。"""
+    data = {}
+    for item in item_ids:
+        name = safe_name(item)
+        data["%s.%s" % (NAMESPACE, name)] = {"textures": ["textures/items/%s/%s" % (NAMESPACE, name)]}
+        if item in cast:
+            data["%s.%s_cast" % (NAMESPACE, name)] = {"textures": ["textures/items/%s/%s_cast" % (NAMESPACE, name)]}
+    return {"resource_pack_name": NAMESPACE, "texture_name": "atlas.items", "texture_data": data}
 
 
-def build_mappings(bases):
-    """Geyser のカスタムアイテムの対応づけ（形式2）。bases は {アイテムID: 元の Java のアイテム}。"""
+def build_mappings(bases, flat=frozenset(), cast=frozenset()):
+    """Geyser のカスタムアイテムの対応づけ（形式2）。
+
+    bases は {アイテムID: 元の Java のアイテム}。flat は平らな絵の品（道具のように持つ）、cast は投げた状態の絵も持つ品。
+    投げた状態は、fishing_rod_cast の条件つきの定義にして、条件のない定義より先に並べる。
+    """
     items = {}
     for item, base in bases.items():
         name = safe_name(item)
-        items.setdefault(base, []).append({
+        definitions = items.setdefault(base, [])
+        options = {"allow_offhand": True, "display_handheld": item in flat}
+        if item in cast:
+            definitions.append({
+                "type": "definition",
+                "model": "%s:%s" % (NAMESPACE, item),
+                "bedrock_identifier": "%s:%s_cast" % (NAMESPACE, name),
+                "predicate": {"type": "condition", "property": "fishing_rod_cast"},
+                "bedrock_options": dict(options, icon="%s.%s_cast" % (NAMESPACE, name)),
+            })
+        definitions.append({
             "type": "definition",
             "model": "%s:%s" % (NAMESPACE, item),
             "bedrock_identifier": "%s:%s" % (NAMESPACE, name),
-            "bedrock_options": {"icon": "%s.%s" % (NAMESPACE, name), "allow_offhand": True, "display_handheld": False},
+            "bedrock_options": dict(options, icon="%s.%s" % (NAMESPACE, name)),
         })
     return {"format_version": 2, "items": items}
 
@@ -208,13 +227,23 @@ def _model_path(root, item):
 
 
 def build_pack(root, out, bases, tag):
-    """bases の全アイテムについて、統合版のパックと対応づけを out に作る。"""
+    """bases の全アイテムについて、統合版のパックと対応づけを out に作る。3Dモデルのない品は、平らな絵の品として扱う。"""
     pack = os.path.join(out, "pack")
     textures = os.path.join(root, "assets", "hnmt", "textures")
+    flat = set()
+    cast = set()
     for item in bases:
         name = safe_name(item)
         with open(_model_path(root, item), encoding="utf-8") as handle:
             model = json.load(handle)
+        _copy(os.path.join(textures, "item", item + ".png"), os.path.join(pack, "textures", "items", NAMESPACE, name + ".png"))
+        if not model.get("elements"):
+            flat.add(item)
+            cast_icon = os.path.join(textures, "item", item + "_cast.png")
+            if os.path.exists(cast_icon):
+                cast.add(item)
+                _copy(cast_icon, os.path.join(pack, "textures", "items", NAMESPACE, name + "_cast.png"))
+            continue
         model_texture = os.path.join(textures, model["textures"]["0"].replace("hnmt:", "") + ".png")
         with open(model_texture, "rb") as handle:
             size = png_size(handle.read(32))
@@ -224,10 +253,9 @@ def build_pack(root, out, bases, tag):
         _write_json(os.path.join(pack, "attachables", geometry_id + ".json"),
                     build_attachable("%s:%s" % (NAMESPACE, name), geometry_id, "textures/entity/%s/%s" % (NAMESPACE, name)))
         _copy(model_texture, os.path.join(pack, "textures", "entity", NAMESPACE, name + ".png"))
-        _copy(os.path.join(textures, "item", item + ".png"), os.path.join(pack, "textures", "items", NAMESPACE, name + ".png"))
-    _write_json(os.path.join(pack, "textures", "item_texture.json"), build_item_atlas(bases))
+    _write_json(os.path.join(pack, "textures", "item_texture.json"), build_item_atlas(bases, cast))
     _write_json(os.path.join(pack, "manifest.json"), build_manifest(tag))
-    _write_json(os.path.join(out, "custom_mappings", "hnmt.json"), build_mappings(bases))
+    _write_json(os.path.join(out, "custom_mappings", "hnmt.json"), build_mappings(bases, flat, cast))
 
 
 def zip_pack(out):
