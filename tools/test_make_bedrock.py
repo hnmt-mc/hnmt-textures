@@ -156,3 +156,163 @@ class RealModelTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+DEFAULT_DISPLAY = {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]}
+
+
+class AnimationTests(unittest.TestCase):
+    DISPLAY = {
+        "firstperson_righthand": {"rotation": [10, 20, 30], "translation": [1, 2, 3], "scale": [0.5, 0.5, 0.5]},
+        "thirdperson_righthand": {"rotation": [10, 20, 30], "translation": [1, 2, 3], "scale": [0.5, 0.5, 0.5]},
+        "head": {"rotation": [10, 20, 30], "translation": [1, 2, 3], "scale": [2, 2, 2]},
+    }
+
+    def bones(self, display):
+        return make_bedrock.display_to_animations(display, "hnmt_fish_tai")["animations"]
+
+    def test_the_first_person_view_swaps_the_axes_and_adds_the_base_offset(self):
+        bone = self.bones(self.DISPLAY)["animation.hnmt_fish_tai.hold_first_person"]["bones"]["model"]
+        self.assertEqual(bone["rotation"], [-70, -30, 10])
+        self.assertEqual(bone["position"], [-2, 15.5, 1])
+        self.assertEqual(bone["scale"], [0.5, 0.5, 0.5])
+
+    def test_the_third_person_view_has_its_own_base_rotation(self):
+        bone = self.bones(self.DISPLAY)["animation.hnmt_fish_tai.hold_third_person"]["bones"]["model"]
+        self.assertEqual(bone["rotation"], [90, -30, -20])
+        self.assertEqual(bone["position"], [-1, 15.5, -2])
+        self.assertEqual(bone["scale"], [0.5, 0.5, 0.5])
+
+    def test_the_head_view_is_scaled_down_and_lifted(self):
+        bone = self.bones(self.DISPLAY)["animation.hnmt_fish_tai.head"]["bones"]["model"]
+        self.assertEqual(bone["rotation"], [-10, -20, 30])
+        self.assertEqual(bone["position"], [-0.655, 21.31, 1.965])
+        self.assertEqual(bone["scale"], [1.31, 1.31, 1.31])
+
+    def test_a_missing_display_uses_the_java_defaults(self):
+        bones = self.bones({})
+        first = bones["animation.hnmt_fish_tai.hold_first_person"]["bones"]["model"]
+        self.assertEqual(first["rotation"], [-90, 0, 0])
+        self.assertEqual(first["position"], [0, 12.5, 0])
+        self.assertEqual(first["scale"], [1, 1, 1])
+
+    def test_all_three_animations_loop(self):
+        for animation in self.bones(self.DISPLAY).values():
+            self.assertIs(animation["loop"], True)
+
+
+class AttachableTests(unittest.TestCase):
+    def test_the_attachable_names_the_geometry_texture_and_animations(self):
+        doc = make_bedrock.build_attachable("hnmt:fish_tai", "hnmt_fish_tai", "textures/entity/hnmt/fish_tai")
+        description = doc["minecraft:attachable"]["description"]
+        self.assertEqual(description["identifier"], "hnmt:fish_tai")
+        self.assertEqual(description["geometry"], {"default": "geometry.hnmt_fish_tai"})
+        self.assertEqual(description["textures"]["default"], "textures/entity/hnmt/fish_tai")
+        self.assertEqual(set(description["animations"]), {"first_person", "third_person", "head"})
+        self.assertEqual(description["animations"]["head"], "animation.hnmt_fish_tai.head")
+        self.assertEqual(description["render_controllers"], ["controller.render.item_default"])
+
+    def test_each_view_plays_only_in_its_own_slot(self):
+        doc = make_bedrock.build_attachable("hnmt:fish_tai", "hnmt_fish_tai", "t")
+        animate = doc["minecraft:attachable"]["description"]["scripts"]["animate"]
+        self.assertEqual([list(entry)[0] for entry in animate], ["first_person", "third_person", "head"])
+        self.assertIn("context.is_first_person == 1.0", animate[0]["first_person"])
+        self.assertIn("context.is_first_person == 0.0", animate[1]["third_person"])
+        self.assertIn("context.item_slot == 'head'", animate[2]["head"])
+
+    def test_the_geometry_bone_follows_the_item_slot(self):
+        doc = make_bedrock.model_to_geometry(GeometryTests.MODEL, "x", texture_px=(32, 32))
+        bone = doc["minecraft:geometry"][0]["bones"][0]
+        self.assertEqual(bone["binding"], "q.item_slot_to_bone_name(context.item_slot)")
+
+
+class ManifestTests(unittest.TestCase):
+    def test_the_manifest_carries_the_version_from_the_tag(self):
+        doc = make_bedrock.build_manifest("v1.2.3")
+        self.assertEqual(doc["header"]["version"], [1, 2, 3])
+        self.assertEqual(doc["modules"][0]["version"], [1, 2, 3])
+        self.assertEqual(doc["format_version"], 2)
+
+    def test_the_uuids_do_not_change_between_builds(self):
+        a = make_bedrock.build_manifest("v0.1.0")
+        b = make_bedrock.build_manifest("v0.2.0")
+        self.assertEqual(a["header"]["uuid"], b["header"]["uuid"])
+        self.assertNotEqual(a["header"]["uuid"], a["modules"][0]["uuid"])
+
+    def test_a_tag_that_is_not_a_version_is_refused(self):
+        with self.assertRaises(ValueError):
+            make_bedrock.build_manifest("main")
+
+
+class MappingTests(unittest.TestCase):
+    def test_the_mapping_binds_the_java_model_to_the_bedrock_item(self):
+        doc = make_bedrock.build_mappings({"fish/tai": "minecraft:tropical_fish"})
+        self.assertEqual(doc["format_version"], 2)
+        entry = doc["items"]["minecraft:tropical_fish"][0]
+        self.assertEqual(entry["type"], "definition")
+        self.assertEqual(entry["model"], "hnmt:fish/tai")
+        self.assertEqual(entry["bedrock_identifier"], "hnmt:fish_tai")
+        self.assertEqual(entry["bedrock_options"]["icon"], "hnmt.fish_tai")
+
+    def test_items_with_the_same_base_share_one_list(self):
+        doc = make_bedrock.build_mappings({"fish/tai": "minecraft:cod", "fish/saba": "minecraft:cod"})
+        self.assertEqual(len(doc["items"]["minecraft:cod"]), 2)
+
+    def test_the_item_atlas_lists_every_icon(self):
+        doc = make_bedrock.build_item_atlas(["fish/tai"])
+        self.assertEqual(doc["texture_data"]["hnmt.fish_tai"], {"textures": ["textures/items/hnmt/fish_tai"]})
+        self.assertEqual(doc["texture_name"], "atlas.items")
+
+
+class IdentifierTests(unittest.TestCase):
+    def test_slashes_become_underscores(self):
+        self.assertEqual(make_bedrock.safe_name("dish/sashimi_tai"), "dish_sashimi_tai")
+        self.assertEqual(make_bedrock.safe_name("rice"), "rice")
+
+
+class BuildTests(unittest.TestCase):
+    def test_building_tai_writes_a_complete_pack(self):
+        import json
+        import os
+        import tempfile
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+        with tempfile.TemporaryDirectory() as out:
+            make_bedrock.build_pack(root, out, {"fish/tai": "minecraft:tropical_fish"}, "v0.1.0")
+            expected = [
+                "pack/manifest.json",
+                "pack/textures/item_texture.json",
+                "pack/textures/items/hnmt/fish_tai.png",
+                "pack/textures/entity/hnmt/fish_tai.png",
+                "pack/models/entity/hnmt_fish_tai.geo.json",
+                "pack/attachables/hnmt_fish_tai.json",
+                "pack/animations/hnmt_fish_tai.animation.json",
+                "custom_mappings/hnmt.json",
+            ]
+            for path in expected:
+                self.assertTrue(os.path.exists(os.path.join(out, path)), path)
+            with open(os.path.join(out, "pack/textures/item_texture.json"), encoding="utf-8") as handle:
+                atlas = json.load(handle)
+            for entry in atlas["texture_data"].values():
+                for texture in entry["textures"]:
+                    self.assertTrue(os.path.exists(os.path.join(out, "pack", texture + ".png")), texture)
+
+    def test_the_pack_is_zipped_with_the_manifest_at_the_top(self):
+        import os
+        import tempfile
+        import zipfile
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+        with tempfile.TemporaryDirectory() as out:
+            make_bedrock.build_pack(root, out, {"fish/tai": "minecraft:tropical_fish"}, "v0.1.0")
+            target = make_bedrock.zip_pack(out)
+            with zipfile.ZipFile(target) as archive:
+                names = archive.namelist()
+            self.assertIn("manifest.json", names)
+            self.assertIn("attachables/hnmt_fish_tai.json", names)
+
+    def test_an_item_without_a_model_is_refused(self):
+        import os
+        import tempfile
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+        with tempfile.TemporaryDirectory() as out:
+            with self.assertRaises(FileNotFoundError):
+                make_bedrock.build_pack(root, out, {"fish/not_a_fish": "minecraft:cod"}, "v0.1.0")
