@@ -199,13 +199,21 @@ def _copy(source, destination):
     shutil.copyfile(source, destination)
 
 
+def _model_path(root, item):
+    """3Dモデルの場所。models3d にあればそこ、なければ assets の中（クーラーボックスは、アイコンと同じモデルが3D）。"""
+    path = os.path.join(root, "models3d", item + ".json")
+    if os.path.exists(path):
+        return path
+    return os.path.join(root, "assets", "hnmt", "models", "item", item + ".json")
+
+
 def build_pack(root, out, bases, tag):
     """bases の全アイテムについて、統合版のパックと対応づけを out に作る。"""
     pack = os.path.join(out, "pack")
     textures = os.path.join(root, "assets", "hnmt", "textures")
     for item in bases:
         name = safe_name(item)
-        with open(os.path.join(root, "models3d", item + ".json"), encoding="utf-8") as handle:
+        with open(_model_path(root, item), encoding="utf-8") as handle:
             model = json.load(handle)
         model_texture = os.path.join(textures, model["textures"]["0"].replace("hnmt:", "") + ".png")
         with open(model_texture, "rb") as handle:
