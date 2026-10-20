@@ -177,12 +177,16 @@ class AllItemsTests(unittest.TestCase):
             items.add(os.path.relpath(path, os.path.join(self.ROOT, "models3d"))[:-5])
         for path in glob.glob(os.path.join(self.ROOT, "assets", "hnmt", "models", "item", "cooler", "*.json")):
             items.add("cooler/" + os.path.basename(path)[:-5])
-        for path in glob.glob(os.path.join(self.ROOT, "assets", "hnmt", "items", "rod", "*.json")):
-            items.add("rod/" + os.path.basename(path)[:-5])
+        # 釣竿は入れない。統合版では、カスタムアイテムにすると、釣りボタンが出ず、手に持つ向きも反転するので、
+        # ふつうの釣竿のままにする（2026-10-20 決定）。
         return items
 
     def test_every_3d_item_has_a_base_item_and_nothing_else_does(self):
         self.assertEqual(set(self.bases()), self.model_items())
+
+    def test_fishing_rods_stay_vanilla_on_bedrock(self):
+        self.assertEqual([item for item in self.bases() if item.startswith("rod/")], [])
+        self.assertNotIn("minecraft:fishing_rod", self.bases().values())
 
     def test_every_base_is_a_vanilla_item(self):
         for item, base in self.bases().items():
