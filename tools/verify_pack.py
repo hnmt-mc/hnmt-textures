@@ -16,8 +16,8 @@ def verify():
     count = 0
     dimensions = set()
     expected = list(inventory())
-    if len(expected) != 65:
-        failures.append("Expected 65 texture/model variants")
+    if len(expected) != 71:
+        failures.append("Expected 71 texture/model variants")
     for group, name, _ in expected:
         relative = "/".join(part for part in (group, name) if part)
         try:
@@ -49,20 +49,22 @@ def verify():
                     assert set(dish_texture.getchannel("A").get_flattened_data()) <= {0, 255}
                     assert len(model["elements"]) <= 150, "dish cuboid budget must be <=150"
                 for element in model["elements"]:
-                    assert set(element) <= ({"name", "rotation"} if group == "dish" else set()) | {
+                    assert set(element) <= ({"name", "rotation"} if group in ("dish", "rice") else set()) | {
                         "from",
                         "to",
                         "faces",
                     }, "unsupported element fields"
                     if "rotation" in element:
                         rotation = element["rotation"]
-                        assert group == "dish" and rotation["axis"] == "y"
+                        assert group in ("dish", "rice")
+                        assert rotation["axis"] in (("y",) if group == "dish" else ("x", "y", "z"))
                         assert rotation["angle"] in (-45, -22.5, 0, 22.5, 45)
                         assert not rotation.get("rescale", False)
                         assert len(rotation["origin"]) == 3
                         assert all(math.isfinite(v) for v in rotation["origin"])
-                    for a, b in zip(element["from"], element["to"]):
-                        assert math.isfinite(a) and math.isfinite(b) and 0 <= a < b <= 16
+                    for axis, (a, b) in enumerate(zip(element["from"], element["to"])):
+                        minimum = -1 if group == "rice" and name.startswith("plant_") and axis == 1 else 0
+                        assert math.isfinite(a) and math.isfinite(b) and minimum <= a < b <= 16
                     assert set(element["faces"]) == {
                         "north",
                         "south",

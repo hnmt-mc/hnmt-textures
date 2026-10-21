@@ -22,6 +22,7 @@ jobs:
         run: |
           python tools/verify_pack.py
           python -m unittest discover -s tools -p 'test_food_models.py'
+          python -m unittest discover -s tools -p 'test_rice_models.py'
           python -m unittest discover -s tools -p 'test_make_manifest.py'
           python -m unittest discover -s tools -p 'test_blender_coolers.py'
           python -m unittest discover -s tools -p 'test_make_bedrock*.py'

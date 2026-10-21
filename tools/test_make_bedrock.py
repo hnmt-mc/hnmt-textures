@@ -177,6 +177,9 @@ class AllItemsTests(unittest.TestCase):
             items.add(os.path.relpath(path, os.path.join(self.ROOT, "models3d"))[:-5])
         for path in glob.glob(os.path.join(self.ROOT, "assets", "hnmt", "models", "item", "cooler", "*.json")):
             items.add("cooler/" + os.path.basename(path)[:-5])
+        # 田んぼに立つ稲（rice/plant_*）は、世界に出す ItemDisplay 用で、持ち物のアイテムではない。
+        # 統合版で見えるかが未確認なので、対象にしない（2026-10-21 決定）。
+        items -= {"rice/plant_seedling", "rice/plant_growing", "rice/plant_mature"}
         # 釣竿は入れない。統合版では、カスタムアイテムにすると、釣りボタンが出ず、手に持つ向きも反転するので、
         # ふつうの釣竿のままにする（2026-10-20 決定）。
         return items

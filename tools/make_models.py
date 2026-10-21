@@ -4,6 +4,7 @@
 import json
 import math
 from PIL import Image
+from make_rice_models import RICE
 from artwork import PACK, TEXTURES, FISH, RODS, BAITS, DISHES, EXTRAS, OUTLINE as OUTLINE_HEX
 
 DISPLAY = {
@@ -67,6 +68,7 @@ def inventory():
         ("bait", BAITS),
         ("dish", DISHES),
         ("", EXTRAS),
+        ("rice", RICE),
     ):
         for name, label in entries:
             yield group, name, label
@@ -317,6 +319,10 @@ def geometry(group, name, image):
 
 
 def build(group, name):
+    if group == "rice":
+        # Blockbench で書き出した編集結果を維持する。再制作は専用の手順で行う。
+        path = PACK / "models3d/rice" / (name + ".json")
+        return len(json.loads(path.read_text())["elements"])
     if group == "dish":
         from make_food_models import build as build_dish
         return len(build_dish(name)["elements"])
@@ -348,6 +354,6 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--group", choices=("fish", "rod", "bait", "dish", "extras"))
+    parser.add_argument("--group", choices=("fish", "rod", "bait", "dish", "rice", "extras"))
     args = parser.parse_args()
     main("" if args.group == "extras" else args.group)
