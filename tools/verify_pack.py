@@ -23,12 +23,14 @@ def verify():
         try:
             image = Image.open(TEXTURES / (relative + ".png"))
             dimensions.add(image.size)
-            assert image.size == (32, 32), "texture must be 32x32"
+            expected_size = (16, 16) if group == "rice" else (32, 32)   # 米作りは、バニラの作物に近い16px
+            assert image.size == expected_size, "texture must be %dx%d" % expected_size
             assert image.mode == "RGBA", "texture must be RGBA"
-            assert set(image.getchannel("A").get_flattened_data()) == {
-                0,
-                255,
-            }, "expected crisp binary transparency"
+            alpha = set(image.getchannel("A").get_flattened_data())
+            if group == "rice" and name == "mill":
+                assert alpha == {255}, "mill texture is an opaque swatch sheet"
+            else:
+                assert alpha == {0, 255}, "expected crisp binary transparency"
             if group == "rod":
                 model = None  # 釣竿は、3D版でも平らなモデルのまま
             else:
@@ -63,16 +65,22 @@ def verify():
                         assert len(rotation["origin"]) == 3
                         assert all(math.isfinite(v) for v in rotation["origin"])
                     for axis, (a, b) in enumerate(zip(element["from"], element["to"])):
-                        minimum = -1 if group == "rice" and name.startswith("plant_") and axis == 1 else 0
-                        assert math.isfinite(a) and math.isfinite(b) and minimum <= a < b <= 16
-                    assert set(element["faces"]) == {
-                        "north",
-                        "south",
-                        "east",
-                        "west",
-                        "up",
-                        "down",
-                    }
+                        if group == "rice" and name.startswith("plant_"):
+                            # 交差した板（バニラの作物と同じ）。足元は耕地の面より1下、幅は回転で収まるよう、はみ出して置く。
+                            assert math.isfinite(a) and math.isfinite(b) and -16 <= a <= b <= 32
+                            continue
+                        assert math.isfinite(a) and math.isfinite(b) and 0 <= a < b <= 16
+                    if group == "rice" and (name.startswith("plant_") or name in ("seedling", "stalk")):
+                        assert set(element["faces"]) == {"north", "south"}, "flat planes have two faces"
+                    else:
+                        assert set(element["faces"]) == {
+                            "north",
+                            "south",
+                            "east",
+                            "west",
+                            "up",
+                            "down",
+                        }
                     for face in element["faces"].values():
                         assert face["texture"] == "#0"
                         assert len(face["uv"]) == 4 and all(

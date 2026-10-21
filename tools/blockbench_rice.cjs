@@ -25,18 +25,18 @@ if (!Array.isArray(entries) || entries.length !== 6 || new Set(entries.map(entry
     Codecs.java_block.load(entry.model, {name: entry.name + '.json', path: entry.name + '.json'});
     Project.name = entry.name;
     Project.java_block_version = '1.21.11';
-    Project.texture_width = Project.texture_height = 32;
+    Project.texture_width = Project.texture_height = 16;
     const texture = Texture.all[0];
     if (!texture) throw new Error('Texture missing: ' + entry.name);
     texture.name = entry.name + '.png'; texture.folder = 'item/rice'; texture.namespace = 'hnmt';
     texture.fromDataURL(entry.image);
     await new Promise((resolve,reject) => {
      const limit = Date.now() + 10000;
-     const check = () => {if (texture.img?.complete && texture.img.naturalWidth === 32) resolve(); else if (Date.now()>limit) reject(new Error('Texture load timeout')); else setTimeout(check,30);};check();
+     const check = () => {if (texture.img?.complete && texture.img.naturalWidth === 16) resolve(); else if (Date.now()>limit) reject(new Error('Texture load timeout')); else setTimeout(check,30);};check();
     });
     const groups = {};
     for (const cube of Cube.all) {
-     const category = entry.name === 'mill' ? (cube.name.startsWith('Base') ? 'Base' : cube.name.startsWith('Handle') ? 'Handle' : 'Top') : cube.name.startsWith('Ear') ? 'Ear' : cube.name.startsWith('Leaf') ? 'Leaves' : cube.name.startsWith('Root') ? 'Roots' : cube.name.startsWith('Tie') ? 'Tie' : 'Stalk';
+     const category = entry.name === 'mill' ? (cube.name.startsWith('Base') ? 'Base' : cube.name.startsWith('Handle') ? 'Handle' : 'Top') : cube.name.startsWith('Plant') ? 'Plant' : 'Sprite';
      groups[category] ||= new Group({name:category}).init();
      cube.addTo(groups[category]);
     }
