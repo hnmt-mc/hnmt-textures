@@ -43,7 +43,7 @@ Minecraft サーバー「日ノ本鯖」の、リソースパックの元デー�
 
 ## 料理・素材の追加分
 
-元のアイコンは32×32・RGBA・透過PNGです。魚12・釣竿14状態・餌4・料理32・素材3の計65種類があります。
+元のアイコンは32×32・RGBA・透過PNGです。魚12・釣竿14状態・餌4・料理32・素材3・米作り6の計71種類があります。
 料理3D版には、別途32枚の32×32・RGBAのUVアトラスを用意しています。
 料理は`textures/item/dish/<ID>.png`・`items/dish/<ID>.json`・`models/item/dish/<ID>.json`、
 米・いくら・まな板は`rice`・`ikura`・`board`として各ディレクトリの直下に置いています。
@@ -51,6 +51,51 @@ Minecraft サーバー「日ノ本鯖」の、リソースパックの元デー�
 料理と素材をJava側のitem_modelへ接続する変更は含めていません。
 
 [絵の編集元・種類ごとの特徴・実物の釣竿の参考資料](art/README.md)も参照してください。
+
+## 米作りのモデル
+
+苗・刈った稲・石臼と、田んぼの成長3段階を追加しています。
+既存の炊いた米 `hnmt:rice` はそのままで、新しい6種類は `hnmt:rice/<名前>` です。
+
+| 名前 | 見た目 |
+| --- | --- |
+| `seedling` | 細いひもで根元をまとめた緑の苗 |
+| `stalk` | 黄金色の穂が垂れた稲の束 |
+| `mill` | 上下2枚の石、挽き溝、投入口、木の取っ手がある石臼 |
+| `plant_seedling` | 田んぼの短い苗 |
+| `plant_growing` | 細い葉が伸びた緑の稲 |
+| `plant_mature` | 黄金色の房が垂れた、刈り取り前の稲 |
+
+![米作り6種類のBlockbenchプレビュー](art/rice-preview.png)
+
+編集元は `blockbench/rice/<名前>.bbmodel` です。Blockbench の **Java Block/Item** で開けます。
+32×32のテクスチャを埋め込み、茎・葉・穂は `Stalk`・`Leaves`・`Ear`、石臼は `Base`・`Top`・`Handle` に分けています。
+モデルは Minecraft 1.21.11 向けに書き出しています。1品につきテクスチャ1枚、直方体と標準の回転だけを使用します。
+
+書き出し先は `models3d/rice/<名前>.json` と `assets/hnmt/textures/item/rice/<名前>.png` です。
+`assets/hnmt/models/item/rice/` は平らなアイコン版です。`make_models.py` は、米作りのBlockbench書き出しを上書きしません。
+
+田んぼ用は足元を `y=-1` まで伸ばし、幅を1ブロックの内側に収めています。
+石臼の底は `y=0` で、既存のハーフブロックの上に重ねる前提です。
+`fixed` は回転なし・平行移動なし・等倍です。Blockbench の書き出しで既定値が省略されても、同じ配置になります。
+**ゲーム内の高さ・手持ち・GUI表示は未確認です。統合版の対応表には、この6種類をまだ追加していません。**
+
+座標から作り直す場合は、先にBlockbenchでの手編集を保存・コミットしてください。次の処理は編集元を上書きします。
+
+```sh
+python3 tools/make_rice_models.py
+PLAYWRIGHT_MODULE="$(pwd)/build/blockbench-tools/node_modules/playwright" \
+  node tools/blockbench_rice.cjs
+python3 tools/make_rice_models.py --review
+python3 -m unittest discover -s tools -p test_rice_models.py
+sh tools/build_zip.sh
+python3 tools/verify_pack.py
+```
+
+Playwrightの準備は「料理の3Dモデルを編集する」と共通です。
+`CHROME_PATH` を指定すると、インストール済みのChromeを利用できます。
+Blockbench Web 5.2.2で6種類の書き出しと、編集元の再読み込みを確認しています。
+プレビューと確認記録は `build/rice3d/` に出力します。Blenderは使用しません。
 
 ## クーラーボックス
 魚専用の持ち運び箱（`hnmt:cooler/small`・`medium`・`large`）の見た目です。テクスチャは32x32で、輪郭と本体・蓋・氷・留め具の8色だけで描いています。モデルは直方体6〜8個の3Dで、平らなアイコン版・3D版のどちらの zip にも同じものが入ります。パックがなければ、元の樽のまま表示されます。
@@ -181,6 +226,6 @@ build/venv/bin/python tools/verify_pack.py
 既存の`blender_fish3d.py`・`blender_rod3d.py`・`blender_bait3d.py`は分類ごとの再生成とプレビュー用です。
 これらは`python3`からPillowを読み込める環境で実行してください。
 
-一覧画像は`build/`、全65種類の個別プレビューは`build/preview3d/`へ出力します。
+一覧画像は`build/`、全71種類の個別プレビューは`build/preview3d/`へ出力します。
 制作物とプレビューはゲーム内検証の代わりにはなりません。Geyser/Rainbowでの変換、
 ゲーム内の手持ち角度・額縁・GUIでの表示、料理の機能との接続は未検証です。
