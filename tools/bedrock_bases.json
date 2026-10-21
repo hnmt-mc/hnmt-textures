@@ -52,5 +52,8 @@
   "fish/tai": "minecraft:tropical_fish",
   "fish/unagi": "minecraft:cod",
   "ikura": "minecraft:orange_dye",
-  "rice": "minecraft:sugar"
+  "rice": "minecraft:sugar",
+  "rice/mill": "minecraft:smooth_stone_slab",
+  "rice/seedling": "minecraft:wheat_seeds",
+  "rice/stalk": "minecraft:wheat"
 }
