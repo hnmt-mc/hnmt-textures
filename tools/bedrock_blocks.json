@@ -1,4 +1,11 @@
 {
+  "board": {
+    "java_block": "minecraft:petrified_oak_slab",
+    "state": "type=double,waterlogged=false",
+    "slab_height": 0,
+    "model": "block/board",
+    "display_name": "Cutting Board"
+  },
   "rice/mill": {
     "java_block": "minecraft:petrified_oak_slab",
     "state": "type=bottom,waterlogged=false",

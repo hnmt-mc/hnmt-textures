@@ -2,6 +2,6 @@
   "variants": {
     "type=bottom": {"model": "minecraft:block/smooth_stone_slab"},
     "type=top": {"model": "minecraft:block/smooth_stone_slab_top"},
-    "type=double": {"model": "minecraft:block/smooth_stone"}
+    "type=double": {"model": "hnmt:block/board"}
   }
 }

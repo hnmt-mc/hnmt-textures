@@ -215,6 +215,7 @@ def block_geometry(model, identifier, texture_px, slab_height, slab_uv=(0, 8, 8,
     サーバーの本物のブロックはハーフブロック（高さ slab_height）で、その上に Java 版では ItemDisplay でモデルを重ねている。
     統合版には ItemDisplay がないので、ハーフブロックと置き物を、1つのブロックの絵にする。
     ブロックの絵は高さ 16 までなので、モデルが残りの高さ（16 - slab_height）に収まらないときは、縦だけ縮める。
+    slab_height が 0 のときは、ハーフブロックを足さず、モデルだけをブロックの絵にする（土台が2段のまな板）。
     ハーフブロックの面は、テクスチャの slab_uv（Java の UV の範囲）を使う。
     """
     elements = model.get("elements") or []
@@ -228,7 +229,7 @@ def block_geometry(model, identifier, texture_px, slab_height, slab_uv=(0, 8, 8,
     uv_space = tuple(model.get("texture_size", (16, 16)))
     slab = {"from": [0, 0, 0], "to": [16, slab_height, 16],
             "faces": {name: {"uv": list(slab_uv), "texture": "#0"} for name in FACES}}
-    stacked = [slab]
+    stacked = [slab] if slab_height > 0 else []   # ハーフブロックを足さない品（まな板）は、モデルだけ
     for element in elements:
         moved = dict(element)
         moved["from"] = [element["from"][0], slab_height + element["from"][1] * factor, element["from"][2]]
@@ -253,27 +254,45 @@ def block_geometry_name(item):
 def build_block_mappings(blocks):
     """Geyser のカスタムブロックの対応づけ（形式1）。
 
-    blocks は {アイテムID: {java_block, state, slab_height, display_name}}。Java のブロックの状態を、ちょうど1つだけ、
-    カスタムブロックに置き換える（only_override_states）。ほかの状態は、そのまま。
-    サーバーは、この状態のブロックを、統合版の人にだけ見せかけで送る（本物のブロックは変えない）。
+    blocks は {アイテムID: {java_block, state, slab_height, display_name, （model）}}。Java のブロックの状態を、
+    指定した状態だけ、カスタムブロックに置き換える（only_override_states）。ほかの状態は、そのまま。
+    同じ Java のブロックの、別の状態に、別のブロックを結べる（石臼は石化したオークの下半分、まな板は2段）。
+    定義（name）は Java のブロックごとに1つで、見た目（geometry と material_instances）は、状態ごとに書く。
     """
+    grouped = {}
+    for item, entry in sorted(blocks.items()):
+        grouped.setdefault(entry["java_block"], []).append((item, entry))
     result = {}
-    for item, entry in blocks.items():
-        java = entry["java_block"]
-        if java in result:
-            raise ValueError("同じ Java のブロックを、2つのブロックが使えません: " + java)
-        name = "%s_%s" % (NAMESPACE, safe_name(item))
+    for java, entries in grouped.items():
+        overrides = {}
+        for item, entry in entries:
+            if entry["state"] in overrides:
+                raise ValueError("同じ状態を、2つのブロックが使えません: %s[%s]" % (java, entry["state"]))
+            name = "%s_%s" % (NAMESPACE, safe_name(item))
+            overrides[entry["state"]] = {
+                "geometry": "geometry." + block_geometry_name(item),
+                "material_instances": {"*": {"texture": name, "render_method": "alpha_test",
+                                             "face_dimming": True, "ambient_occlusion": True}},
+            }
+        first_item, first = entries[0]
+        first_override = overrides[first["state"]]
         result[java] = {
-            "name": name,
-            "display_name": entry["display_name"],
-            "geometry": "geometry." + block_geometry_name(item),
-            "material_instances": {"*": {"texture": name, "render_method": "alpha_test",
-                                         "face_dimming": True, "ambient_occlusion": True}},
+            "name": "%s_%s" % (NAMESPACE, java.split(":", 1)[1]),
+            "display_name": first["display_name"],
+            "geometry": first_override["geometry"],
+            "material_instances": first_override["material_instances"],
             "included_in_creative_inventory": False,
             "only_override_states": True,
-            "state_overrides": {entry["state"]: {}},
+            "state_overrides": overrides,
         }
     return {"format_version": 1, "blocks": result}
+
+
+def block_model_path(root, item, entry):
+    """ブロックの絵にする Java のモデルの場所。entry に model（assets/hnmt/models の中の名前）があればそれ、なければ、アイテムの3Dモデル。"""
+    if "model" in entry:
+        return os.path.join(root, "assets", "hnmt", "models", entry["model"] + ".json")
+    return _model_path(root, item)
 
 
 def build_terrain_atlas(block_ids):
@@ -340,7 +359,7 @@ def build_pack(root, out, bases, tag, blocks=None):
         for item, entry in blocks.items():
             if item not in bases:
                 raise ValueError("ブロックにする品が、アイテムの表にありません: " + item)
-            with open(_model_path(root, item), encoding="utf-8") as handle:
+            with open(block_model_path(root, item, entry), encoding="utf-8") as handle:
                 model = json.load(handle)
             texture = os.path.join(textures, model["textures"]["0"].replace("hnmt:", "") + ".png")
             with open(texture, "rb") as handle:
