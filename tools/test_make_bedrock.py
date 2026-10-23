@@ -223,6 +223,172 @@ class AllItemsTests(unittest.TestCase):
             self.assertEqual(len(identifiers), len(set(identifiers)))
 
 
+class BlockTests(unittest.TestCase):
+    """石臼のように、ハーフブロックの上に立つ置き物を、統合版のカスタムブロックにする。"""
+    ROOT = None
+    TABLE = {"rice/mill": {"java_block": "minecraft:petrified_oak_slab", "state": "type=bottom,waterlogged=false",
+                           "slab_height": 8, "display_name": "Stone Mill"}}
+
+    @classmethod
+    def setUpClass(cls):
+        import os
+        cls.ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+
+    def model(self):
+        import json
+        import os
+        with open(os.path.join(self.ROOT, "models3d", "rice", "mill.json"), encoding="utf-8") as handle:
+            return json.load(handle)
+
+    def geometry(self):
+        return make_bedrock.block_geometry(self.model(), "hnmt_block_rice_mill", (16, 16), slab_height=8)
+
+    def cubes(self):
+        return self.geometry()["minecraft:geometry"][0]["bones"][0]["cubes"]
+
+    def test_the_geometry_is_one_slab_plus_the_model_stacked_on_it(self):
+        cubes = self.cubes()
+        self.assertEqual(len(cubes), 1 + len(self.model()["elements"]))
+        slab = cubes[0]
+        self.assertEqual(slab["origin"], [-8, 0, -8])
+        self.assertEqual(slab["size"], [16, 8, 16])
+
+    def test_every_cube_stays_inside_one_block(self):
+        for cube in self.cubes():
+            self.assertGreaterEqual(cube["origin"][0], -8)
+            self.assertLessEqual(cube["origin"][0] + cube["size"][0], 8)
+            self.assertGreaterEqual(cube["origin"][2], -8)
+            self.assertLessEqual(cube["origin"][2] + cube["size"][2], 8)
+            self.assertGreaterEqual(cube["origin"][1], 0)
+            self.assertLessEqual(cube["origin"][1] + cube["size"][1], 16)
+
+    def test_the_model_sits_on_the_slab_and_fills_the_rest_of_the_height(self):
+        cubes = self.cubes()
+        self.assertEqual(min(c["origin"][1] for c in cubes[1:]), 8)
+        self.assertEqual(max(c["origin"][1] + c["size"][1] for c in cubes), 16)
+
+    def test_the_slab_uses_the_base_part_of_the_texture_on_every_face(self):
+        faces = self.cubes()[0]["uv"]
+        self.assertEqual(set(faces), set(make_bedrock.FACES))
+        for face in faces.values():
+            self.assertEqual(face["uv"][0] + face["uv_size"][0] <= 16, True)
+
+    def test_a_model_that_is_already_too_tall_is_squeezed_not_clipped(self):
+        tall = {"elements": [cube((0, 0, 0), (16, 30, 16))], "textures": {"0": "hnmt:item/x"}}
+        cubes = make_bedrock.block_geometry(tall, "x", (16, 16), slab_height=8)["minecraft:geometry"][0]["bones"][0]["cubes"]
+        self.assertEqual(max(c["origin"][1] + c["size"][1] for c in cubes), 16)
+
+    def test_a_rotated_element_is_refused(self):
+        rotated = {"elements": [cube((0, 0, 0), (4, 4, 4), rotation={"angle": 45, "axis": "y", "origin": [2, 2, 2]})]}
+        with self.assertRaises(ValueError):
+            make_bedrock.block_geometry(rotated, "x", (16, 16), slab_height=8)
+
+    def test_the_mapping_overrides_only_the_one_state(self):
+        mappings = make_bedrock.build_block_mappings(self.TABLE)
+        self.assertEqual(mappings["format_version"], 1)
+        definition = mappings["blocks"]["minecraft:petrified_oak_slab"]
+        self.assertEqual(definition["name"], "hnmt_rice_mill")
+        self.assertEqual(definition["geometry"], "geometry.hnmt_block_rice_mill")
+        self.assertTrue(definition["only_override_states"])
+        self.assertEqual(list(definition["state_overrides"]), ["type=bottom,waterlogged=false"])
+        self.assertFalse(definition["included_in_creative_inventory"])
+        self.assertEqual(definition["material_instances"]["*"]["texture"], "hnmt_rice_mill")
+
+    def test_two_blocks_on_the_same_java_block_are_refused(self):
+        table = dict(self.TABLE)
+        table["rice/other"] = dict(self.TABLE["rice/mill"], state="type=top,waterlogged=false")
+        with self.assertRaises(ValueError):
+            make_bedrock.build_block_mappings(table)
+
+    def test_the_real_table_is_well_formed_and_its_items_exist(self):
+        import json
+        import os
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "bedrock_blocks.json"), encoding="utf-8") as handle:
+            table = json.load(handle)
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "bedrock_bases.json"), encoding="utf-8") as handle:
+            bases = json.load(handle)
+        self.assertEqual(table, self.TABLE)
+        for item, entry in table.items():
+            self.assertIn(item, bases, "ブロックにする品は、アイテムの表にもある")
+            self.assertRegex(entry["java_block"], r"^minecraft:[a-z_]+$")
+            self.assertRegex(entry["state"], r"^[a-z_]+=[a-z0-9_]+(,[a-z_]+=[a-z0-9_]+)*$")
+
+    def test_the_pack_gets_the_block_files_and_every_reference_exists(self):
+        import json
+        import os
+        import tempfile
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "bedrock_bases.json"), encoding="utf-8") as handle:
+            bases = json.load(handle)
+        with tempfile.TemporaryDirectory() as out:
+            make_bedrock.build_pack(self.ROOT, out, bases, "v0.1.0", blocks=self.TABLE)
+            pack = os.path.join(out, "pack")
+            with open(os.path.join(pack, "textures", "terrain_texture.json"), encoding="utf-8") as handle:
+                terrain = json.load(handle)
+            self.assertEqual(terrain["texture_name"], "atlas.terrain")
+            entry = terrain["texture_data"]["hnmt_rice_mill"]
+            self.assertTrue(os.path.exists(os.path.join(pack, entry["textures"] + ".png")))
+            with open(os.path.join(pack, "models", "blocks", "hnmt_block_rice_mill.geo.json"), encoding="utf-8") as handle:
+                geometry = json.load(handle)
+            self.assertEqual(geometry["minecraft:geometry"][0]["description"]["identifier"], "geometry.hnmt_block_rice_mill")
+            with open(os.path.join(out, "custom_mappings", "hnmt_blocks.json"), encoding="utf-8") as handle:
+                mappings = json.load(handle)
+            definition = mappings["blocks"]["minecraft:petrified_oak_slab"]
+            self.assertEqual(definition["geometry"], geometry["minecraft:geometry"][0]["description"]["identifier"])
+            self.assertIn(definition["material_instances"]["*"]["texture"], terrain["texture_data"])
+
+    def test_the_mill_item_is_placed_as_the_block_that_geyser_replaces(self):
+        # 見せかけを送る方式は、統合版で壊せなかった（Geyser は、サーバー上の本物のブロックで壊す処理を進めるため）。
+        # 石臼のアイテムを置くと、置き換え対象のブロックそのものが置かれるようにそろえる。
+        import json
+        import os
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, "bedrock_bases.json"), encoding="utf-8") as handle:
+            bases = json.load(handle)
+        for item, entry in self.TABLE.items():
+            self.assertEqual(bases[item], entry["java_block"], item)
+
+    def test_java_clients_see_the_replaced_block_as_smooth_stone(self):
+        # 石化したオークのハーフブロックは、ふつうはオークの板の見た目なので、Java 版のパックで、なめらかな石と同じにする。
+        import json
+        import os
+        path = os.path.join(self.ROOT, "assets", "minecraft", "blockstates", "petrified_oak_slab.json")
+        with open(path, encoding="utf-8") as handle:
+            variants = json.load(handle)["variants"]
+        self.assertEqual({key: value["model"] for key, value in variants.items()}, {
+            "type=bottom": "minecraft:block/smooth_stone_slab",
+            "type=top": "minecraft:block/smooth_stone_slab_top",
+            "type=double": "minecraft:block/smooth_stone",
+        })
+
+    def test_no_two_geometries_in_the_pack_share_an_identifier(self):
+        # 石臼は、アイテム（手に持つ）とブロックの両方になる。ジオメトリの名前が同じだと、片方がもう片方を上書きして、手に持った石臼が消える。
+        import glob
+        import json
+        import os
+        import tempfile
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "bedrock_bases.json"), encoding="utf-8") as handle:
+            bases = json.load(handle)
+        with tempfile.TemporaryDirectory() as out:
+            make_bedrock.build_pack(self.ROOT, out, bases, "v0.1.0", blocks=self.TABLE)
+            seen = {}
+            for path in glob.glob(os.path.join(out, "pack", "models", "**", "*.geo.json"), recursive=True):
+                with open(path, encoding="utf-8") as handle:
+                    identifier = json.load(handle)["minecraft:geometry"][0]["description"]["identifier"]
+                self.assertNotIn(identifier, seen, "%s と %s が同じ名前" % (path, seen.get(identifier)))
+                seen[identifier] = path
+
+    def test_without_blocks_no_block_files_are_made(self):
+        import json
+        import os
+        import tempfile
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "bedrock_bases.json"), encoding="utf-8") as handle:
+            bases = json.load(handle)
+        with tempfile.TemporaryDirectory() as out:
+            make_bedrock.build_pack(self.ROOT, out, bases, "v0.1.0")
+            self.assertFalse(os.path.exists(os.path.join(out, "custom_mappings", "hnmt_blocks.json")))
+            self.assertFalse(os.path.exists(os.path.join(out, "pack", "textures", "terrain_texture.json")))
+
+
 if __name__ == "__main__":
     unittest.main()
 
