@@ -32,6 +32,16 @@ class BedrockManifestTests(unittest.TestCase):
         self.assertEqual(files["hnmt-bedrock.mcpack"]["sha1"], hashlib.sha1(self.PACK).hexdigest())
         self.assertEqual(files["hnmt.json"]["sha1"], hashlib.sha1(self.MAPPINGS).hexdigest())
 
+    def test_the_blocks_mapping_is_listed_when_given(self):
+        blocks = b'{"format_version": 1}'
+        result = make_bedrock_manifest.manifest("v0.1.0", self.PACK, self.MAPPINGS, blocks)
+        files = {entry["name"]: entry for entry in result["files"]}
+        self.assertEqual(set(files), {"hnmt-bedrock.mcpack", "hnmt.json", "hnmt_blocks.json"})
+        self.assertEqual(files["hnmt_blocks.json"]["target"], "custom_mappings")
+        self.assertEqual(files["hnmt_blocks.json"]["sha1"], hashlib.sha1(blocks).hexdigest())
+        self.assertEqual(files["hnmt_blocks.json"]["url"],
+                         "https://github.com/hnmt-mc/hnmt-textures/releases/download/v0.1.0/hnmt_blocks.json")
+
     def test_the_result_can_be_written_as_json(self):
         json.dumps(self.make())
 

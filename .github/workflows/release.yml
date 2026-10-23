@@ -42,5 +42,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" build/hnmt-textures.zip build/hnmt-textures-flat.zip build/pack.json \
-            build/bedrock/hnmt-bedrock.mcpack build/bedrock/custom_mappings/hnmt.json build/bedrock/bedrock.json \
-            --title "$GITHUB_REF_NAME" --notes "3D版（hnmt-textures.zip）が、Java版のサーバーから送られるパックです。pack.json は、その更新の情報です。hnmt-bedrock.mcpack と hnmt.json は、統合版（Geyser）用のパックと対応づけで、bedrock.json は、その更新の情報です。"
+            build/bedrock/hnmt-bedrock.mcpack build/bedrock/custom_mappings/hnmt.json build/bedrock/custom_mappings/hnmt_blocks.json build/bedrock/bedrock.json \
+            --title "$GITHUB_REF_NAME" --notes "3D版（hnmt-textures.zip）が、Java版のサーバーから送られるパックです。pack.json は、その更新の情報です。hnmt-bedrock.mcpack・hnmt.json・hnmt_blocks.json は、統合版（Geyser）用のパックと対応づけ（アイテムとブロック）で、bedrock.json は、その更新の情報です。"

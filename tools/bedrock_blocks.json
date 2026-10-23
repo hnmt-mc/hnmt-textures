@@ -1,0 +1,8 @@
+{
+  "rice/mill": {
+    "java_block": "minecraft:petrified_oak_slab",
+    "state": "type=bottom,waterlogged=false",
+    "slab_height": 8,
+    "display_name": "Stone Mill"
+  }
+}

@@ -204,6 +204,87 @@ def build_mappings(bases, flat=frozenset(), cast=frozenset()):
     return {"format_version": 2, "items": items}
 
 
+# ---- カスタムブロック（石臼） ----
+
+BLOCKS_FILE = "hnmt_blocks.json"
+
+
+def block_geometry(model, identifier, texture_px, slab_height, slab_uv=(0, 8, 8, 16)):
+    """ハーフブロックの上に立つ置き物（石臼）を、1ブロックぶんのジオメトリにする。
+
+    サーバーの本物のブロックはハーフブロック（高さ slab_height）で、その上に Java 版では ItemDisplay でモデルを重ねている。
+    統合版には ItemDisplay がないので、ハーフブロックと置き物を、1つのブロックの絵にする。
+    ブロックの絵は高さ 16 までなので、モデルが残りの高さ（16 - slab_height）に収まらないときは、縦だけ縮める。
+    ハーフブロックの面は、テクスチャの slab_uv（Java の UV の範囲）を使う。
+    """
+    elements = model.get("elements") or []
+    if not elements:
+        raise ValueError("elements がありません: " + identifier)
+    if any(element.get("rotation") for element in elements):
+        raise ValueError("回転のある直方体は、ブロックにできません: " + identifier)
+    room = 16 - slab_height
+    top = max(element["to"][1] for element in elements)
+    factor = min(1, room / top)
+    uv_space = tuple(model.get("texture_size", (16, 16)))
+    slab = {"from": [0, 0, 0], "to": [16, slab_height, 16],
+            "faces": {name: {"uv": list(slab_uv), "texture": "#0"} for name in FACES}}
+    stacked = [slab]
+    for element in elements:
+        moved = dict(element)
+        moved["from"] = [element["from"][0], slab_height + element["from"][1] * factor, element["from"][2]]
+        moved["to"] = [element["to"][0], slab_height + element["to"][1] * factor, element["to"][2]]
+        stacked.append(moved)
+    cubes = [convert_element(element, uv_space, texture_px) for element in stacked]
+    return {
+        "format_version": FORMAT_VERSION,
+        "minecraft:geometry": [{
+            "description": {"identifier": "geometry." + identifier,
+                            "texture_width": texture_px[0], "texture_height": texture_px[1]},
+            "bones": [{"name": "block", "pivot": [0, 0, 0], "cubes": cubes}],
+        }],
+    }
+
+
+def block_geometry_name(item):
+    """ブロックのジオメトリの名前。アイテム（手に持つ）のジオメトリは hnmt_<名前> なので、別の名前にする（同じだと、片方が上書きされる）。"""
+    return "%s_block_%s" % (NAMESPACE, safe_name(item))
+
+
+def build_block_mappings(blocks):
+    """Geyser のカスタムブロックの対応づけ（形式1）。
+
+    blocks は {アイテムID: {java_block, state, slab_height, display_name}}。Java のブロックの状態を、ちょうど1つだけ、
+    カスタムブロックに置き換える（only_override_states）。ほかの状態は、そのまま。
+    サーバーは、この状態のブロックを、統合版の人にだけ見せかけで送る（本物のブロックは変えない）。
+    """
+    result = {}
+    for item, entry in blocks.items():
+        java = entry["java_block"]
+        if java in result:
+            raise ValueError("同じ Java のブロックを、2つのブロックが使えません: " + java)
+        name = "%s_%s" % (NAMESPACE, safe_name(item))
+        result[java] = {
+            "name": name,
+            "display_name": entry["display_name"],
+            "geometry": "geometry." + block_geometry_name(item),
+            "material_instances": {"*": {"texture": name, "render_method": "alpha_test",
+                                         "face_dimming": True, "ambient_occlusion": True}},
+            "included_in_creative_inventory": False,
+            "only_override_states": True,
+            "state_overrides": {entry["state"]: {}},
+        }
+    return {"format_version": 1, "blocks": result}
+
+
+def build_terrain_atlas(block_ids):
+    """ブロックの絵の一覧。"""
+    data = {}
+    for item in block_ids:
+        name = "%s_%s" % (NAMESPACE, safe_name(item))
+        data[name] = {"textures": "textures/blocks/%s/%s" % (NAMESPACE, safe_name(item))}
+    return {"resource_pack_name": NAMESPACE, "texture_name": "atlas.terrain", "padding": 8, "num_mip_levels": 4, "texture_data": data}
+
+
 # ---- パック全体 ----
 
 def _write_json(path, doc):
@@ -226,8 +307,10 @@ def _model_path(root, item):
     return os.path.join(root, "assets", "hnmt", "models", "item", item + ".json")
 
 
-def build_pack(root, out, bases, tag):
-    """bases の全アイテムについて、統合版のパックと対応づけを out に作る。3Dモデルのない品は、平らな絵の品として扱う。"""
+def build_pack(root, out, bases, tag, blocks=None):
+    """bases の全アイテムについて、統合版のパックと対応づけを out に作る。3Dモデルのない品は、平らな絵の品として扱う。
+
+    blocks（{アイテムID: ブロックの定義}）があれば、その品は、カスタムブロックとしても作る（見せかけのブロック用）。"""
     pack = os.path.join(out, "pack")
     textures = os.path.join(root, "assets", "hnmt", "textures")
     flat = set()
@@ -253,6 +336,21 @@ def build_pack(root, out, bases, tag):
         _write_json(os.path.join(pack, "attachables", geometry_id + ".json"),
                     build_attachable("%s:%s" % (NAMESPACE, name), geometry_id, "textures/entity/%s/%s" % (NAMESPACE, name)))
         _copy(model_texture, os.path.join(pack, "textures", "entity", NAMESPACE, name + ".png"))
+    if blocks:
+        for item, entry in blocks.items():
+            if item not in bases:
+                raise ValueError("ブロックにする品が、アイテムの表にありません: " + item)
+            with open(_model_path(root, item), encoding="utf-8") as handle:
+                model = json.load(handle)
+            texture = os.path.join(textures, model["textures"]["0"].replace("hnmt:", "") + ".png")
+            with open(texture, "rb") as handle:
+                size = png_size(handle.read(32))
+            geometry_name = block_geometry_name(item)
+            _write_json(os.path.join(pack, "models", "blocks", geometry_name + ".geo.json"),
+                        block_geometry(model, geometry_name, size, entry["slab_height"]))
+            _copy(texture, os.path.join(pack, "textures", "blocks", NAMESPACE, safe_name(item) + ".png"))
+        _write_json(os.path.join(pack, "textures", "terrain_texture.json"), build_terrain_atlas(blocks))
+        _write_json(os.path.join(out, "custom_mappings", BLOCKS_FILE), build_block_mappings(blocks))
     _write_json(os.path.join(pack, "textures", "item_texture.json"), build_item_atlas(bases, cast))
     _write_json(os.path.join(pack, "manifest.json"), build_manifest(tag))
     _write_json(os.path.join(out, "custom_mappings", "hnmt.json"), build_mappings(bases, flat, cast))
@@ -273,9 +371,11 @@ def main(argv):
     root, out, tag = argv[1], argv[2], argv[3]
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "bedrock_bases.json"), encoding="utf-8") as handle:
         bases = json.load(handle)
-    build_pack(root, out, bases, tag)
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "bedrock_blocks.json"), encoding="utf-8") as handle:
+        blocks = json.load(handle)
+    build_pack(root, out, bases, tag, blocks)
     zip_pack(out)
-    print("作りました: %d 品 → %s" % (len(bases), out))
+    print("作りました: %d 品（うちブロック %d） → %s" % (len(bases), len(blocks), out))
     return 0
 
 

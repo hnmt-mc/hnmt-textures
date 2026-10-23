@@ -10,9 +10,10 @@ Minecraft サーバー「日ノ本鯖」の、リソースパックの元デー�
   - `hnmt-textures.zip`: 配布用の3D版。
   - `pack.json`: 更新の情報（`version`・`url`・`sha1`・`id`）。
 - hnmt-core は、`https://github.com/hnmt-mc/hnmt-textures/releases/latest/download/pack.json` を読み、Java版で参加した人へ、パックを送ります（統合版には送りません）。**パックを更新するには、新しいタグを打つだけ**で、サーバーの設定変更も、再起動も要りません（次の参加から、新しい版が配られます）。
-- 統合版（Geyser）用には、リリースに、さらに3つが付きます（くわしくは下の「統合版（Geyser）」）。
+- 統合版（Geyser）用には、リリースに、さらに4つが付きます（くわしくは下の「統合版（Geyser）」）。
   - `hnmt-bedrock.mcpack`: 統合版用のパック。
   - `hnmt.json`: Geyser のカスタムアイテムの対応づけ。
+  - `hnmt_blocks.json`: Geyser のカスタムブロックの対応づけ（石臼）。
   - `bedrock.json`: 更新の情報（各ファイルの `name`・`target`・`url`・`sha1`）。
 - 手でパックを入れたい人は、[リリース](https://github.com/hnmt-mc/hnmt-textures/releases/latest)から、`hnmt-textures.zip` を、`.minecraft/resourcepacks/` に置いてください。
 
@@ -115,11 +116,20 @@ python3 -m unittest discover -s tools -p 'test_blender_coolers.py'
 | --- | --- | --- |
 | `hnmt-bedrock.mcpack` | `packs/` | 統合版用のパック（ジオメトリ・attachable・アニメーション・アイコン） |
 | `hnmt.json` | `custom_mappings/` | `item_model` と、統合版のアイテムの対応づけ（カスタムアイテム API の形式2） |
+| `hnmt_blocks.json` | `custom_mappings/` | カスタムブロックの対応づけ（形式1）。石臼を、見せかけのブロックの状態に結ぶ |
 | `bedrock.json` | （置かない） | 更新の情報。置くファイルの名前・置き先・URL・SHA-1 |
 
 ### 対象
 - 魚12・餌4・料理32・クーラーボックス3・米・いくら・まな板・稲の苗・刈った稲・石臼の、**57品**。田んぼに立つ稲（`rice/plant_*`）は、世界に出す表示用で、統合版で見えるかが未確認なので入れません。
 - **釣竿は入れません。** 統合版では、釣竿をカスタムアイテムにすると、釣りボタンが出ず、手に持つ向きも反転するためです。ふつうの釣竿のままです。
+
+### 石臼のカスタムブロック
+田んぼの稲は、統合版の人には、サーバーが小麦のブロックを見せかけで送ります（パックは関係しません）。石臼は、Java 版では土台のハーフブロックの上に `ItemDisplay` で重ねていますが、統合版には `ItemDisplay` がないので、**統合版の人にだけ、土台を別のブロックの状態で見せかけに送り、その状態だけを、石臼のカスタムブロックに置き換えます。**
+
+- 対応づけは `tools/bedrock_blocks.json`（アイテムID → `java_block`・`state`・`slab_height`・`display_name`）です。いまは、石化したオークのハーフブロックの下半分（`minecraft:petrified_oak_slab[type=bottom,waterlogged=false]`）を、石臼にしています。ふだん使われないブロックなので、ほかの建築に影響しません。
+- **サーバー側（hnmt-core の `PaddyRules.BEDROCK_MILL_BLOCK`）と、この表は、同じ状態にそろえてください。** 食い違うと、統合版で石臼に見えません。
+- 形は、Java 版の石臼のモデルから作ります。ハーフブロックの上に立つので、ブロックの高さ 16 に収まるよう、モデルの縦だけを縮めます（`make_bedrock.py` の `block_geometry`）。
+- ブロックのジオメトリの名前は、アイテム用（`geometry.hnmt_<名前>`）と別（`geometry.hnmt_block_<名前>`）にしてください。同じだと、手に持った品が消えます（テストで確かめています）。
 
 ### 自動で置く
 hnmt-core のリポジトリの `geyserpacks/`（`hnmt-geyserpacks.jar`）が、`bedrock.json` を取って、Geyser のフォルダに置きます。Paper（Geyser-Spigot）と Velocity（Geyser-Velocity）の両方で動きます。置いたあとは、**Geyser の再起動で反映**されます。
