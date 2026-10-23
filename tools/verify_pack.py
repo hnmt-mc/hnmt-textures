@@ -16,8 +16,8 @@ def verify():
     count = 0
     dimensions = set()
     expected = list(inventory())
-    if len(expected) != 71:
-        failures.append("Expected 71 texture/model variants")
+    if len(expected) != 72:
+        failures.append("Expected 72 texture/model variants")
     for group, name, _ in expected:
         relative = "/".join(part for part in (group, name) if part)
         try:
@@ -70,7 +70,7 @@ def verify():
                             assert math.isfinite(a) and math.isfinite(b) and -16 <= a <= b <= 32
                             continue
                         assert math.isfinite(a) and math.isfinite(b) and 0 <= a < b <= 16
-                    if group == "rice" and (name.startswith("plant_") or name in ("seedling", "stalk")):
+                    if group == "rice" and (name.startswith("plant_") or name in ("seedling", "stalk", "grain")):
                         assert set(element["faces"]) == {"north", "south"}, "flat planes have two faces"
                     else:
                         assert set(element["faces"]) == {
