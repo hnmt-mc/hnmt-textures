@@ -36,6 +36,7 @@ Minecraft サーバー「日ノ本鯖」の、リソースパックの元デー�
 | `models3d/fish`・`models3d/bait` | 3D版のモデル（直方体の `elements`）。釣竿は、3D版も平らなので、ない |
 | `models3d/dish` | 器と盛り付けを別々に組んだ料理32品の3Dモデル |
 | `blockbench/dish` | 料理のBlockbench編集元。32×32テクスチャを埋め込み済み |
+| `blockbench/board`・`assets/hnmt/models/block/board.json` | まな板のブロック（台の上にまな板と包丁が乗った形）の編集元とモデル |
 | `assets/hnmt/textures/item/dish3d` | 料理3D版専用の32×32 UVアトラス。2Dアイコンとは別に管理 |
 | `tools/` | テクスチャとモデルを作るスクリプト、zip を作るスクリプト |
 
@@ -124,14 +125,15 @@ python3 -m unittest discover -s tools -p 'test_blender_coolers.py'
 - 魚12・餌4・料理32・クーラーボックス3・ご飯・いくら・まな板・稲の苗・刈った稲・炊く前の米・石臼の、**58品**。田んぼに立つ稲（`rice/plant_*`）は、世界に出す表示用で、統合版で見えるかが未確認なので入れません。
 - **釣竿は入れません。** 統合版では、釣竿をカスタムアイテムにすると、釣りボタンが出ず、手に持つ向きも反転するためです。ふつうの釣竿のままです。
 
-### 石臼のカスタムブロック
-田んぼの稲は、統合版の人には、サーバーが小麦のブロックを見せかけで送ります（パックは関係しません）。石臼は、Java 版では土台のハーフブロックの上に `ItemDisplay` で重ねていますが、統合版には `ItemDisplay` がないので、**土台のブロックそのものを、石臼のカスタムブロックに置き換えます。**
+### 石臼とまな板のカスタムブロック
+田んぼの稲は、統合版の人には、サーバーが小麦のブロックを見せかけで送ります（パックは関係しません）。石臼とまな板は、Java 版では**土台のブロックを置き換えた見た目**で、統合版には `ItemDisplay` がないので、**土台のブロックそのものを、カスタムブロックに置き換えます。**
 
-- 土台は、**石化したオークのハーフブロックの下半分**（`minecraft:petrified_oak_slab[type=bottom,waterlogged=false]`）です。ふだん使われないブロックなので、ほかの建築に影響しません。石臼のアイテムは、これを置きます（`tools/bedrock_bases.json` の `rice/mill`）。
-- 対応づけは `tools/bedrock_blocks.json`（アイテムID → `java_block`・`state`・`slab_height`・`display_name`）です。`java_block` は、アイテムの元のブロックと同じにしてください（テストで確かめています）。
+- 土台は、どちらも**石化したオークのハーフブロック**です（ふだん使われないので、ほかの建築に影響しません）。**石臼は下半分**（`type=bottom`）、**まな板は2段**（`type=double`）で、状態で分かれます。アイテムの元も、このブロックです（`tools/bedrock_bases.json` の `rice/mill` と `board`）。
+- 対応づけは `tools/bedrock_blocks.json`（アイテムID → `java_block`・`state`・`slab_height`・`display_name`・（`model`））です。`java_block` は、アイテムの元のブロックと同じにしてください（テストで確かめています）。同じ Java のブロックの、別の状態に、別のブロックを結べます。**同じ状態を2つのブロックが使うことはできません。**
+- 形は、Java 版のモデルから作ります。石臼は、ハーフブロックの上に立つので、ブロックの高さ 16 に収まるよう、モデルの縦だけを縮めます（`slab_height` が 8）。まな板は、台の上にまな板と包丁が乗ったブロック1個ぶんのモデル（`model` に `block/board`、`slab_height` が 0 でハーフブロックを足さない）です。
 - 一度、サーバーが別のブロックの状態を、統合版の人にだけ見せかけで送る方式を試しましたが、**統合版で壊せませんでした**。Geyser は壊す処理を、サーバー上の本物のブロックで進めるので、見せかけと食い違うためです。いまは、本物の土台を置き換える形にしています。
-- Java 版では、石化したオークのハーフブロックが、オークの板の見た目になるので、`assets/minecraft/blockstates/petrified_oak_slab.json` で、なめらかな石のハーフブロックと同じモデルにしています（石臼の土台が、いままでどおり石に見えます）。パックを入れていない人は、オークの板の見た目の土台になります。
-- 形は、Java 版の石臼のモデルから作ります。ハーフブロックの上に立つので、ブロックの高さ 16 に収まるよう、モデルの縦だけを縮めます（`make_bedrock.py` の `block_geometry`）。
+- Java 版では、石化したオークのハーフブロックが、オークの板の見た目になるので、`assets/minecraft/blockstates/petrified_oak_slab.json` で、下半分はなめらかな石（石臼の土台）、2段は `hnmt:block/board`（まな板）にしています。パックを入れていない人は、オークの板の見た目の土台になります。
+- まな板のブロックの絵は `tools/make_board_block.py`（16px の絵と座標）で作り、`tools/blockbench_board.cjs` で Blockbench 本体から書き出します（編集元は `blockbench/board/board.bbmodel`、モデルは `assets/hnmt/models/block/board.json`、絵は `assets/hnmt/textures/block/board.png`）。
 - ブロックのジオメトリの名前は、アイテム用（`geometry.hnmt_<名前>`）と別（`geometry.hnmt_block_<名前>`）にしてください。同じだと、手に持った品が消えます（テストで確かめています）。
 
 ### 自動で置く
