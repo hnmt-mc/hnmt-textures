@@ -5,10 +5,10 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root = path.resolve(__dirname, '..');
 const target = path.join(root, 'build/rice3d');
 const entries = JSON.parse(fs.readFileSync(path.join(target, 'manifest.json'), 'utf8'));
-if (!Array.isArray(entries) || entries.length !== 6 || new Set(entries.map(entry => entry.name)).size !== 6 ||
-    entries.some(entry => !/^(seedling|stalk|mill|plant_seedling|plant_growing|plant_mature)$/.test(entry.name) ||
+if (!Array.isArray(entries) || entries.length !== 7 || new Set(entries.map(entry => entry.name)).size !== 7 ||
+    entries.some(entry => !/^(seedling|stalk|grain|mill|plant_seedling|plant_growing|plant_mature)$/.test(entry.name) ||
       !entry.image?.startsWith('data:image/png;base64,') || !Array.isArray(entry.model?.elements))) {
- throw new Error('Invalid rice manifest: expected 6 named models with embedded PNG textures');
+ throw new Error('Invalid rice manifest: expected 7 named models with embedded PNG textures');
 }
 
 (async () => {

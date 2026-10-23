@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """米作りの絵（16px、バニラの作物に近い粗さ）と座標を作り、Blockbenchへ渡す。
 
-田んぼの稲は、バニラの作物と同じ「交差した板2枚」。苗と刈った稲は、薄い板1枚の平らなアイコン。石臼は直方体4個。
+田んぼの稲は、バニラの作物と同じ「交差した板2枚」。苗・刈った稲・炊く前の米は、薄い板1枚の平らなアイコン。石臼は直方体4個。
 """
 import argparse
 import base64
@@ -9,7 +9,7 @@ import json
 from PIL import Image
 from artwork import PACK, BUILD
 
-RICE = [('seedling', '稲の苗'), ('stalk', '刈った稲'), ('mill', '石臼'),
+RICE = [('seedling', '稲の苗'), ('stalk', '刈った稲'), ('grain', '米（炊く前）'), ('mill', '石臼'),
         ('plant_seedling', '田んぼ・苗'), ('plant_growing', '田んぼ・成長中'), ('plant_mature', '田んぼ・実り')]
 SIZE = 16
 PALETTE = {
@@ -18,6 +18,7 @@ PALETTE = {
     'root': '#8a5f35', 'band': '#c4552e',
     'stone_light': '#a6a6a6', 'stone': '#8a8a8a', 'stone_dark': '#6c6c6c', 'stone_speck': '#797979',
     'wood': '#8f6a3c', 'wood_light': '#b38b52', 'hole': '#3a3a3a', 'grain': '#f0e6b0',
+    'rice_light': '#f7f2de', 'rice': '#e4dbb8', 'rice_shade': '#bfb48c',
 }
 
 
@@ -55,6 +56,20 @@ def _noise(image, box, light, dark, seed):
             _put(image, x, y, dark if (x * 7 + y * 13 + seed) % 5 == 0 else light)
 
 
+def _grain_pile(image):
+    """炊く前の米。白っぽい粒の小さな山（粒は横に長い2画素）。ご飯（湯気のある白い山）とは、粒の見える細かさで見分ける。"""
+    rows = {15: range(2, 14), 14: range(3, 13), 13: range(4, 12), 12: range(5, 11), 11: range(6, 10), 10: range(7, 9)}
+    for y, xs in rows.items():
+        for x in xs:
+            key = 'rice_light' if (x // 2 + y) % 2 == 0 else 'rice'
+            if y == 15 or x == min(xs) or x == max(xs): key = 'rice_shade' if (x + y) % 2 == 0 else 'rice'
+            _put(image, x, y, key)
+    for x, y in ((1, 15), (14, 15), (3, 13), (12, 14)):    # こぼれた粒
+        _put(image, x, y, 'rice_light')
+    for x, y in ((4, 15), (7, 15), (10, 15), (6, 14), (9, 13), (7, 12)):    # 粒の境目
+        _put(image, x, y, 'rice_shade')
+
+
 def texture(name):
     if name not in dict(RICE):
         raise ValueError('Unknown rice item: ' + name)
@@ -72,6 +87,9 @@ def texture(name):
             for y in range(12, 16): _put(image, x, y, 'hole')
         for x in range(12, 16):
             for y in range(12, 16): _put(image, x, y, 'grain')
+        return image
+    if name == 'grain':
+        _grain_pile(image)
         return image
     dry = name in ('stalk', 'plant_mature')
     if name == 'plant_seedling':
@@ -199,7 +217,7 @@ def main():
         model, path = build(name)
         entries.append({'name': name, 'label': label, 'model': model, 'image': 'data:image/png;base64,'+base64.b64encode(path.read_bytes()).decode()})
     (target/'manifest.json').write_text(json.dumps(entries, ensure_ascii=False, indent=2)+'\n')
-    print('Prepared 6 rice models for Blockbench')
+    print('Prepared %d rice models for Blockbench' % len(RICE))
 
 
 if __name__ == '__main__': main()

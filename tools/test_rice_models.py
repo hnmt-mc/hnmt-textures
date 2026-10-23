@@ -12,9 +12,9 @@ class RiceModelTests(unittest.TestCase):
     def model(self, name):
         return json.loads((PACK/'models3d/rice'/f'{name}.json').read_text())
 
-    def test_six_ids_are_added_without_replacing_cooked_rice(self):
+    def test_seven_ids_are_added_without_replacing_cooked_rice(self):
         entries = list(inventory())
-        self.assertEqual(len(entries), 71)
+        self.assertEqual(len(entries), 72)
         self.assertEqual({name for group, name, _ in entries if group == 'rice'}, set(dict(RICE)))
         self.assertIn(('', 'rice', '米'), entries)
         cooked = json.loads((PACK/'assets/hnmt/items/rice.json').read_text())
@@ -22,6 +22,17 @@ class RiceModelTests(unittest.TestCase):
         for name, _ in RICE:
             definition = json.loads((PACK/'assets/hnmt/items/rice'/f'{name}.json').read_text())
             self.assertEqual(definition['model'], {'type': 'minecraft:model', 'model': f'hnmt:item/rice/{name}'})
+
+    def test_uncooked_rice_is_a_flat_pile_of_pale_grains(self):
+        # 炊く前の米（hnmt:rice/grain）。苗・稲と同じ平らな板で、ご飯（hnmt:rice）とは別の絵。
+        import json
+        model = self.model('grain')
+        self.assertEqual([part['name'] for part in model['elements']], ['Sprite'])
+        with Image.open(PACK/'assets/hnmt/textures/item/rice/grain.png') as image:
+            opaque = [image.getpixel((x, y)) for y in range(16) for x in range(16) if image.getpixel((x, y))[3] == 255]
+        self.assertGreater(len(opaque), 30)
+        self.assertLess(len(opaque), 130, "小さな山（画面いっぱいにしない）")
+        self.assertTrue(all(r > 150 and g > 140 and b > 100 for r, g, b, a in opaque), "白っぽい粒だけ")
 
     def test_textures_are_16px_rgba_and_distinct(self):
         signatures = set()
@@ -34,7 +45,7 @@ class RiceModelTests(unittest.TestCase):
                 self.assertLessEqual(len(set(image.get_flattened_data())), 16)
                 self.assertEqual(image.tobytes(), texture(name).tobytes())
                 signatures.add(image.tobytes())
-        self.assertEqual(len(signatures), 6)
+        self.assertEqual(len(signatures), 7)
 
     def test_native_projects_embed_exported_texture_and_named_groups(self):
         for name, _ in RICE:
