@@ -124,10 +124,12 @@ python3 -m unittest discover -s tools -p 'test_blender_coolers.py'
 - **釣竿は入れません。** 統合版では、釣竿をカスタムアイテムにすると、釣りボタンが出ず、手に持つ向きも反転するためです。ふつうの釣竿のままです。
 
 ### 石臼のカスタムブロック
-田んぼの稲は、統合版の人には、サーバーが小麦のブロックを見せかけで送ります（パックは関係しません）。石臼は、Java 版では土台のハーフブロックの上に `ItemDisplay` で重ねていますが、統合版には `ItemDisplay` がないので、**統合版の人にだけ、土台を別のブロックの状態で見せかけに送り、その状態だけを、石臼のカスタムブロックに置き換えます。**
+田んぼの稲は、統合版の人には、サーバーが小麦のブロックを見せかけで送ります（パックは関係しません）。石臼は、Java 版では土台のハーフブロックの上に `ItemDisplay` で重ねていますが、統合版には `ItemDisplay` がないので、**土台のブロックそのものを、石臼のカスタムブロックに置き換えます。**
 
-- 対応づけは `tools/bedrock_blocks.json`（アイテムID → `java_block`・`state`・`slab_height`・`display_name`）です。いまは、石化したオークのハーフブロックの下半分（`minecraft:petrified_oak_slab[type=bottom,waterlogged=false]`）を、石臼にしています。ふだん使われないブロックなので、ほかの建築に影響しません。
-- **サーバー側（hnmt-core の `PaddyRules.BEDROCK_MILL_BLOCK`）と、この表は、同じ状態にそろえてください。** 食い違うと、統合版で石臼に見えません。
+- 土台は、**石化したオークのハーフブロックの下半分**（`minecraft:petrified_oak_slab[type=bottom,waterlogged=false]`）です。ふだん使われないブロックなので、ほかの建築に影響しません。石臼のアイテムは、これを置きます（`tools/bedrock_bases.json` の `rice/mill`）。
+- 対応づけは `tools/bedrock_blocks.json`（アイテムID → `java_block`・`state`・`slab_height`・`display_name`）です。`java_block` は、アイテムの元のブロックと同じにしてください（テストで確かめています）。
+- 一度、サーバーが別のブロックの状態を、統合版の人にだけ見せかけで送る方式を試しましたが、**統合版で壊せませんでした**。Geyser は壊す処理を、サーバー上の本物のブロックで進めるので、見せかけと食い違うためです。いまは、本物の土台を置き換える形にしています。
+- Java 版では、石化したオークのハーフブロックが、オークの板の見た目になるので、`assets/minecraft/blockstates/petrified_oak_slab.json` で、なめらかな石のハーフブロックと同じモデルにしています（石臼の土台が、いままでどおり石に見えます）。パックを入れていない人は、オークの板の見た目の土台になります。
 - 形は、Java 版の石臼のモデルから作ります。ハーフブロックの上に立つので、ブロックの高さ 16 に収まるよう、モデルの縦だけを縮めます（`make_bedrock.py` の `block_geometry`）。
 - ブロックのジオメトリの名前は、アイテム用（`geometry.hnmt_<名前>`）と別（`geometry.hnmt_block_<名前>`）にしてください。同じだと、手に持った品が消えます（テストで確かめています）。
 

@@ -336,6 +336,30 @@ class BlockTests(unittest.TestCase):
             self.assertEqual(definition["geometry"], geometry["minecraft:geometry"][0]["description"]["identifier"])
             self.assertIn(definition["material_instances"]["*"]["texture"], terrain["texture_data"])
 
+    def test_the_mill_item_is_placed_as_the_block_that_geyser_replaces(self):
+        # 見せかけを送る方式は、統合版で壊せなかった（Geyser は、サーバー上の本物のブロックで壊す処理を進めるため）。
+        # 石臼のアイテムを置くと、置き換え対象のブロックそのものが置かれるようにそろえる。
+        import json
+        import os
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, "bedrock_bases.json"), encoding="utf-8") as handle:
+            bases = json.load(handle)
+        for item, entry in self.TABLE.items():
+            self.assertEqual(bases[item], entry["java_block"], item)
+
+    def test_java_clients_see_the_replaced_block_as_smooth_stone(self):
+        # 石化したオークのハーフブロックは、ふつうはオークの板の見た目なので、Java 版のパックで、なめらかな石と同じにする。
+        import json
+        import os
+        path = os.path.join(self.ROOT, "assets", "minecraft", "blockstates", "petrified_oak_slab.json")
+        with open(path, encoding="utf-8") as handle:
+            variants = json.load(handle)["variants"]
+        self.assertEqual({key: value["model"] for key, value in variants.items()}, {
+            "type=bottom": "minecraft:block/smooth_stone_slab",
+            "type=top": "minecraft:block/smooth_stone_slab_top",
+            "type=double": "minecraft:block/smooth_stone",
+        })
+
     def test_no_two_geometries_in_the_pack_share_an_identifier(self):
         # 石臼は、アイテム（手に持つ）とブロックの両方になる。ジオメトリの名前が同じだと、片方がもう片方を上書きして、手に持った石臼が消える。
         import glob

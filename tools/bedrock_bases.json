@@ -53,7 +53,7 @@
   "fish/unagi": "minecraft:cod",
   "ikura": "minecraft:orange_dye",
   "rice": "minecraft:sugar",
-  "rice/mill": "minecraft:smooth_stone_slab",
+  "rice/mill": "minecraft:petrified_oak_slab",
   "rice/seedling": "minecraft:wheat_seeds",
   "rice/stalk": "minecraft:wheat"
 }
