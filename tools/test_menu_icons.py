@@ -3,13 +3,21 @@ import json
 import unittest
 from PIL import Image
 from artwork import PACK
-from make_menu_icons import ICONS, draw
+from make_menu_icons import ICONS, BASES, draw
 
 
 class MenuIconTests(unittest.TestCase):
     def test_names_are_unique_and_match_the_published_list(self):
         self.assertEqual(len(ICONS), len(set(ICONS)))
-        self.assertEqual(json.loads((PACK / 'tools/menu_icons.json').read_text()), ICONS)
+        published = json.loads((PACK / 'tools/menu_icons.json').read_text())
+        self.assertEqual(list(published), ICONS)
+        self.assertEqual(published, {name: 'minecraft:' + BASES[name] for name in ICONS})
+
+    def test_every_icon_has_one_base_item_and_the_bedrock_table_agrees(self):
+        self.assertEqual(set(BASES), set(ICONS))
+        bedrock = json.loads((PACK / 'tools/bedrock_bases.json').read_text())
+        for name in ICONS:
+            self.assertEqual(bedrock.get('menu/' + name), 'minecraft:' + BASES[name], name)
 
     def test_every_icon_has_texture_model_and_item_definition(self):
         for name in ICONS:

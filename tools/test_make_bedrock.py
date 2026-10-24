@@ -171,6 +171,7 @@ class AllItemsTests(unittest.TestCase):
     def model_items(self):
         """パックにある、3Dモデルを持つ品（models3d の全部と、assets のクーラーボックス）。"""
         import glob
+        import json
         import os
         items = set()
         for path in glob.glob(os.path.join(self.ROOT, "models3d", "**", "*.json"), recursive=True):
@@ -180,6 +181,9 @@ class AllItemsTests(unittest.TestCase):
         # 田んぼに立つ稲（rice/plant_*）は、世界に出す ItemDisplay 用で、持ち物のアイテムではない。
         # 統合版で見えるかが未確認なので、対象にしない（2026-10-21 決定）。
         items -= {"rice/plant_seedling", "rice/plant_growing", "rice/plant_mature"}
+        # 町のメニューのアイコンは、平らな絵の品（3Dモデルは持たない）。GUI のボタンとして、統合版にも出す。
+        with open(os.path.join(self.ROOT, "tools", "menu_icons.json"), encoding="utf-8") as handle:
+            items |= {"menu/" + name for name in json.load(handle)}
         # 釣竿は入れない。統合版では、カスタムアイテムにすると、釣りボタンが出ず、手に持つ向きも反転するので、
         # ふつうの釣竿のままにする（2026-10-20 決定）。
         return items
@@ -210,7 +214,7 @@ class AllItemsTests(unittest.TestCase):
                 self.assertTrue(os.path.exists(os.path.join(pack, entry["textures"][0] + ".png")))
             for item in self.bases():
                 name = make_bedrock.safe_name(item)
-                if item.startswith("rod/"):
+                if item.startswith("rod/") or item.startswith("menu/"):
                     continue
                 for path in ("models/entity/hnmt_%s.geo.json", "animations/hnmt_%s.animation.json", "attachables/hnmt_%s.json",
                              "textures/entity/hnmt/%s.png"):

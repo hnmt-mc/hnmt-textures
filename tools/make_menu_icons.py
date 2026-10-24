@@ -25,6 +25,21 @@ ICONS = [
     'terms', 'trouble', 'web',
     'plot', 'claim', 'unclaim', 'forsale', 'notforsale', 'plot_type', 'trust',
 ]
+# 統合版（Geyser）は、「元のアイテム」と item_model の組み合わせで見た目を決める。アイコンごとに、元のアイテムを1つに決める。
+# プラグイン（hnmt-townymenu）も、同じ元のアイテムを使う（tools/menu_icons.json の写しで、テストが突き合わせる）。
+BASES = {
+    'blank': 'gray_stained_glass_pane', 'back': 'arrow', 'close': 'barrier', 'previous': 'arrow', 'next': 'arrow',
+    'filter': 'ender_eye', 'help': 'book', 'status': 'paper', 'find': 'compass', 'invites': 'paper',
+    'create': 'crafting_table', 'mytown': 'oak_sign', 'manage': 'anvil', 'locked': 'tripwire_hook',
+    'door_open': 'oak_door', 'door_closed': 'iron_door', 'notown': 'paper', 'join': 'emerald_block', 'cancel': 'barrier',
+    'talk': 'writable_book', 'flow': 'book', 'check_ok': 'lime_concrete', 'check_ng': 'red_concrete', 'start': 'crafting_table',
+    'mayor': 'golden_helmet', 'residents': 'white_bed', 'tax': 'gold_nugget', 'bank': 'gold_ingot', 'spawn': 'ender_pearl',
+    'allow': 'lime_concrete', 'deny': 'red_concrete', 'pvp': 'diamond_sword', 'fire': 'flint_and_steel', 'explosion': 'tnt',
+    'mobs': 'zombie_head', 'preset_residents': 'shield', 'preset_visit': 'spyglass', 'preset_open': 'emerald',
+    'terms': 'written_book', 'trouble': 'bell', 'web': 'white_banner',
+    'plot': 'map', 'claim': 'red_banner', 'unclaim': 'gray_banner', 'forsale': 'oak_sign', 'notforsale': 'oak_sign',
+    'plot_type': 'painting', 'trust': 'tripwire_hook',
+}
 P = {
     'ink': '#2b2f3a',
     'white': '#f7f7f2', 'light': '#d5dae2', 'gray': '#9aa3b0', 'dark': '#5d6573',
@@ -258,7 +273,7 @@ def main():
         write(ASSETS / 'items/menu' / f'{name}.json', {'model': {'type': 'minecraft:model', 'model': f'hnmt:item/menu/{name}'}})
         big = image.resize((SIZE * 8, SIZE * 8), Image.NEAREST)
         sheet.paste(big, (8 + (index % COLS) * CELL, 8 + (index // COLS) * CELL), big)
-    (PACK / 'tools/menu_icons.json').write_text(json.dumps(ICONS, indent=2) + '\n', encoding='utf-8')
+    (PACK / 'tools/menu_icons.json').write_text(json.dumps({name: 'minecraft:' + BASES[name] for name in ICONS}, indent=2) + '\n', encoding='utf-8')
     if args.sheet: sheet.save(args.sheet)
     print(len(ICONS), 'icons')
 
