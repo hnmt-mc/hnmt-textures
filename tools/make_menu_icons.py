@@ -23,6 +23,7 @@ ICONS = [
     'allow', 'deny', 'pvp', 'fire', 'explosion', 'mobs',
     'preset_residents', 'preset_visit', 'preset_open',
     'terms', 'trouble', 'web',
+    'plot', 'claim', 'unclaim', 'forsale', 'notforsale', 'plot_type', 'trust',
 ]
 P = {
     'ink': '#2b2f3a',
@@ -212,6 +213,26 @@ def draw(name):
     elif name == 'web':
         c.ellipse(2, 2, 13, 13, 'blue'); c.poly([(4, 4), (7, 3), (8, 6), (5, 8), (3, 7)], 'green'); c.poly([(8, 9), (12, 8), (11, 12), (9, 12)], 'green')
         c.line([(7, 2), (7, 13)], 'cyan')
+    elif name == 'plot':
+        for (x, y), key in (((2, 2), 'green'), ((8, 2), 'lime'), ((2, 8), 'lime'), ((8, 8), 'green')):
+            c.rect(x, y, x + 5, y + 5, key)
+        c.rect(7, 2, 7, 13, 'tan'); c.rect(2, 7, 13, 7, 'tan')
+    elif name == 'claim':
+        c.rect(3, 2, 4, 14, 'wood'); c.poly([(5, 2), (13, 4), (5, 8)], 'red'); c.px([(6, 3), (7, 3)], 'orange')
+    elif name == 'unclaim':
+        c.rect(3, 2, 4, 14, 'wood'); c.poly([(5, 2), (13, 4), (5, 8)], 'gray'); c.px([(6, 3), (7, 3)], 'light')
+        c.line([(9, 13), (13, 9)], 'red'); c.line([(9, 9), (13, 13)], 'red')
+    elif name == 'forsale':
+        c.rect(2, 2, 13, 9, 'tan'); c.rect(2, 2, 13, 2, 'beige'); c.rect(7, 10, 8, 14, 'wood')
+        c.ellipse(5, 3, 10, 8, 'gold'); c.rect(7, 4, 8, 7, 'gold_d')
+    elif name == 'notforsale':
+        c.rect(2, 2, 13, 9, 'tan'); c.rect(2, 2, 13, 2, 'beige'); c.rect(7, 10, 8, 14, 'wood')
+        c.ellipse(5, 3, 10, 8, 'gold'); c.rect(7, 4, 8, 7, 'gold_d'); c.line([(3, 9), (12, 2)], 'red', 2)
+    elif name == 'plot_type':
+        c.ellipse(1, 2, 14, 13, 'tan'); c.ellipse(9, 8, 12, 11, 'tan')
+        c.rect(4, 4, 5, 5, 'red'); c.rect(8, 3, 9, 4, 'blue'); c.rect(11, 5, 12, 6, 'green'); c.rect(3, 8, 4, 9, 'yellow')
+    elif name == 'trust':
+        c.ellipse(2, 2, 7, 7, 'gold'); c.ellipse(4, 4, 5, 5, 'ink'); c.line([(7, 7), (13, 13)], 'gold', 2); c.px([(11, 11), (12, 10), (10, 12)], 'gold_d')
     else:
         raise KeyError(name)
     return c.finish()
