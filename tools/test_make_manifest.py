@@ -13,7 +13,7 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(result["version"], "v0.1.0")
         self.assertEqual(result["url"], "https://github.com/hnmt-mc/hnmt-textures/releases/download/v0.1.0/hnmt-textures.zip")
         self.assertEqual(result["sha1"], hashlib.sha1(data).hexdigest())
-        self.assertEqual(set(result), {"version", "url", "sha1", "id"})
+        self.assertEqual(set(result), {"version", "url", "sha1", "id", "capabilities"})
         json.dumps(result)
 
     def test_the_id_follows_the_content_so_a_change_makes_clients_download_again(self):
