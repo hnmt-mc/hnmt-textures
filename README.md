@@ -263,3 +263,9 @@ build/venv/bin/python tools/verify_pack.py
 `make_manifest.py` は実際のZIPに対応資産がある場合だけ、`pack.json` の `capabilities` に `rice-held-harvest-v1` を追加します。対応版hnmt-coreは、この情報とプレイヤーの読み込み成功を確認してからJava版の長押し収穫を有効にします。パックを先に配布し、対応版hnmt-coreを導入してください。古いパックや手動導入のみの場合は、従来のクリック操作を使います。
 
 自動検査は割り当てとZIPの内容を確認します。ゲーム内での透明性・歩行・長押し操作は、実クライアントで別途確認してください。
+
+## ご飯の食用化との互換性
+
+対応版hnmt-coreではご飯の元アイテムが `cooked_cod` になります。モデル名 `hnmt:rice` と見た目は同じです。更新前のご飯はプラグインが識別情報を保ったまま変換します。
+
+統合版では `tools/bedrock_bases.json` から生成した新しい `hnmt.json` を先に配置し、Geyserを再起動してから対応版hnmt-coreを導入してください。元アイテムを食料に揃えることで、ご飯にも通常の食事操作が使えます。Java版のモデル・テクスチャ画像の変更はありません。
