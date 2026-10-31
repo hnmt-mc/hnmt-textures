@@ -61,7 +61,7 @@ def _cube(name, start, end, up, side, down=None):
 
 
 def geometry():
-    # Match the full-cube occlusion shape of the double slab carrier.
+    # 土台の二段ハーフブロックと同じ、フルブロックの形に台をそろえる。
     return [
         _cube('Counter', (0, 0, 0), (16, 14, 16), 'side', 'side'),
         _cube('Top', (0, 14, 0), (16, 16, 16), 'top', 'trim', 'side'),

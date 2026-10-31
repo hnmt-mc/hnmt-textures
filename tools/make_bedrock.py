@@ -214,8 +214,9 @@ def block_geometry(model, identifier, texture_px, slab_height, slab_uv=(0, 8, 8,
 
     サーバーの本物のブロックはハーフブロック（高さ slab_height）で、その上に Java 版では ItemDisplay でモデルを重ねている。
     統合版には ItemDisplay がないので、ハーフブロックと置き物を、1つのブロックの絵にする。
-    Models stacked on a slab are fitted into its remaining height (16 - slab_height).
-    With slab_height=0 the model is preserved, including details above its full-height base.
+    ブロックの絵は高さ 16 までなので、ハーフブロックに載せるモデルが残りの高さ（16 - slab_height）に収まらないときは、縦だけ縮める。
+    slab_height が 0 のときは縮めず、モデルをそのままブロックの絵にする（台がフルブロック高のまな板）。
+    統合版の公式の上限は、ブロックの絵の大きさが各軸 30px までなので、16px を超える上の飾りも使える。
     ハーフブロックの面は、テクスチャの slab_uv（Java の UV の範囲）を使う。
     """
     elements = model.get("elements") or []
@@ -225,8 +226,8 @@ def block_geometry(model, identifier, texture_px, slab_height, slab_uv=(0, 8, 8,
         raise ValueError("回転のある直方体は、ブロックにできません: " + identifier)
     room = 16 - slab_height
     top = max(element["to"][1] for element in elements)
-    # Standalone block models must retain their opaque carrier coverage.
-    # Only ornaments stacked on a half slab need fitting into its free space.
+    # 単独のブロックのモデルは、台の高さを保つために縮めない。
+    # 縮めるのは、ハーフブロックの上に載せる飾りだけ。
     factor = min(1, room / top) if slab_height > 0 else 1
     uv_space = tuple(model.get("texture_size", (16, 16)))
     slab = {"from": [0, 0, 0], "to": [16, slab_height, 16],
