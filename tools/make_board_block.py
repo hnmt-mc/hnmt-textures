@@ -61,12 +61,13 @@ def _cube(name, start, end, up, side, down=None):
 
 
 def geometry():
+    # 土台の二段ハーフブロックと同じ、フルブロックの形に台をそろえる。
     return [
-        _cube('Counter', (0, 0, 0), (16, 10, 16), 'side', 'side'),
-        _cube('Top', (0, 10, 0), (16, 12, 16), 'top', 'trim', 'side'),
-        _cube('Board', (2, 12, 3), (14, 13.5, 13), 'board', 'board'),
-        _cube('Blade', (4, 13.5, 9), (11, 14, 10.5), 'metal', 'metal'),
-        _cube('Handle', (11, 13.5, 9), (14.5, 14.8, 10.5), 'handle', 'handle'),
+        _cube('Counter', (0, 0, 0), (16, 14, 16), 'side', 'side'),
+        _cube('Top', (0, 14, 0), (16, 16, 16), 'top', 'trim', 'side'),
+        _cube('Board', (2, 16, 3), (14, 17.5, 13), 'board', 'board'),
+        _cube('Blade', (4, 17.5, 9), (11, 18, 10.5), 'metal', 'metal'),
+        _cube('Handle', (11, 17.5, 9), (14.5, 18.8, 10.5), 'handle', 'handle'),
     ]
 
 
