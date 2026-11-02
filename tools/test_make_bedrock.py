@@ -511,6 +511,15 @@ class ManifestTests(unittest.TestCase):
 
 
 class MappingTests(unittest.TestCase):
+    def test_cooked_rice_has_an_edible_java_base_and_keeps_its_model(self):
+        import json
+        from pathlib import Path
+        bases = json.loads((Path(__file__).parent / "bedrock_bases.json").read_text())
+        self.assertEqual(bases["rice"], "minecraft:cooked_cod")
+        entry = next(d for d in make_bedrock.build_mappings(bases)["items"]["minecraft:cooked_cod"] if d["model"] == "hnmt:rice")
+        self.assertEqual(entry["bedrock_identifier"], "hnmt:rice")
+        self.assertEqual(entry["bedrock_options"]["icon"], "hnmt.rice")
+
     def test_the_mapping_binds_the_java_model_to_the_bedrock_item(self):
         doc = make_bedrock.build_mappings({"fish/tai": "minecraft:tropical_fish"})
         self.assertEqual(doc["format_version"], 2)
