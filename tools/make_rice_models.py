@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """米作りの絵（16px、バニラの作物に近い粗さ）と座標を作り、Blockbenchへ渡す。
 
-田んぼの稲は、バニラの作物と同じ「交差した板2枚」。苗・刈った稲・炊く前の米は、薄い板1枚の平らなアイコン。石臼は直方体4個。
+田んぼの稲は、バニラの作物と同じ「交差した板2枚」。苗・刈った稲・炊く前の米は、薄い板1枚の平らなアイコン。精米機は直方体4個。
 """
 import argparse
 import base64
@@ -9,7 +9,7 @@ import json
 from PIL import Image
 from artwork import PACK, BUILD
 
-RICE = [('seedling', '稲の苗'), ('stalk', '刈った稲'), ('grain', '米（炊く前）'), ('mill', '石臼'),
+RICE = [('seedling', '稲の苗'), ('stalk', '刈った稲'), ('grain', '米（炊く前）'), ('mill', '精米機'),
         ('plant_seedling', '田んぼ・苗'), ('plant_growing', '田んぼ・成長中'), ('plant_mature', '田んぼ・実り')]
 SIZE = 16
 PALETTE = {
@@ -19,6 +19,8 @@ PALETTE = {
     'stone_light': '#a6a6a6', 'stone': '#8a8a8a', 'stone_dark': '#6c6c6c', 'stone_speck': '#797979',
     'wood': '#8f6a3c', 'wood_light': '#b38b52', 'hole': '#3a3a3a', 'grain': '#f0e6b0',
     'rice_light': '#f7f2de', 'rice': '#e4dbb8', 'rice_shade': '#bfb48c',
+    'wood_dark': '#6e4f2b', 'iron_dark': '#5e646b', 'iron': '#8d949b', 'iron_light': '#c4cacf',
+    'red': '#b3412b', 'red_light': '#d4623f',
 }
 
 
@@ -75,18 +77,12 @@ def texture(name):
         raise ValueError('Unknown rice item: ' + name)
     image = Image.new('RGBA', (SIZE, SIZE))
     if name == 'mill':
-        # 領域ごとに面へ割り当てる: 左上=上石の上面、右上=上石の側面、左下=土台、右下の4つ=木・木の明るい面・穴・米粒
-        _noise(image, (0, 0, 8, 8), 'stone_light', 'stone', 1)
-        _noise(image, (8, 0, 16, 8), 'stone', 'stone_speck', 2)
-        _noise(image, (0, 8, 8, 16), 'stone_dark', 'stone_speck', 3)
-        for x in range(8, 12):
-            for y in range(8, 12): _put(image, x, y, 'wood' if (x + y) % 3 else 'wood_light')
-        for x in range(12, 16):
-            for y in range(8, 12): _put(image, x, y, 'wood_light')
-        for x in range(8, 12):
-            for y in range(12, 16): _put(image, x, y, 'hole')
-        for x in range(12, 16):
-            for y in range(12, 16): _put(image, x, y, 'grain')
+        # 4×4画素の小片を、4×4に並べる。面ごとに、小片を1つ割り当てる（MILL_TILES）。
+        for (col, row), (light, dark) in MILL_SWATCHES.items():
+            for y in range(4):
+                for x in range(4):
+                    key = dark if (x * 5 + y * 3 + col * 7 + row * 11) % 4 == 0 else light
+                    _put(image, col * 4 + x, row * 4 + y, key)
         return image
     if name == 'grain':
         _grain_pile(image)
@@ -108,6 +104,47 @@ def texture(name):
     return image
 
 
+# 精米機の絵: 小片（列, 行）→（ふつうの色, 点の色）
+MILL_SWATCHES = {
+    (0, 0): ('wood_dark', 'wood'), (1, 0): ('wood', 'wood_light'), (2, 0): ('wood_light', 'wood'), (3, 0): ('stone', 'stone_speck'),
+    (0, 1): ('iron', 'iron_dark'), (1, 1): ('iron_light', 'iron'), (2, 1): ('iron_dark', 'iron'), (3, 1): ('hole', 'hole'),
+    (0, 2): ('grain', 'iron_light'), (1, 2): ('stone_light', 'stone'), (2, 2): ('wood_dark', 'wood'), (3, 2): ('red', 'red_light'),
+    (0, 3): ('iron_dark', 'hole'), (1, 3): ('stone_dark', 'stone_speck'), (2, 3): ('wood', 'wood_dark'), (3, 3): ('red_light', 'red'),
+}
+
+
+def _tile(col, row):
+    return [col * 4, row * 4, col * 4 + 4, row * 4 + 4]
+
+
+def _mill_part(name, start, end, up, side, bottom=None, front=None):
+    """精米機の直方体1個。面ごとに小片（列, 行）を割り当てる（前=北は、front）。"""
+    bottom, front = bottom or side, front or side
+    return _cube(name, start, end, {'north': _tile(*front), 'south': _tile(*side), 'east': _tile(*side), 'west': _tile(*side),
+                                    'up': _tile(*up), 'down': _tile(*bottom)})
+
+
+def _mill_geometry():
+    x0, x1, rim = 2, 14, 0.9
+    return [
+        _mill_part('Base', (0, 0, 0), (16, 2, 16), (1, 3), (3, 0)),                          # 石の受け皿
+        _mill_part('Body', (3, 2, 3), (13, 8, 13), (0, 0), (1, 0), front=(2, 0)),            # 木の胴
+        _mill_part('HoopLow', (2.6, 3.2, 2.6), (13.4, 4.2, 13.4), (2, 1), (2, 1)),           # 鉄のたが
+        _mill_part('HoopHigh', (2.6, 6.2, 2.6), (13.4, 7.2, 13.4), (2, 1), (2, 1)),
+        _mill_part('Hopper1', (4, 8, 4), (12, 10, 12), (1, 0), (0, 0)),                      # 漏斗（下から上へ広がる）
+        _mill_part('Hopper2', (3, 10, 3), (13, 12, 13), (2, 0), (0, 0)),
+        _mill_part('Hopper3', (x0, 12, x0), (x1, 14, x1), (3, 1), (1, 0)),                   # 上の面は穴（暗い）
+        _mill_part('RimN', (x0, 14, x0), (x1, 15, x0 + rim), (2, 0), (2, 0)),                # 縁
+        _mill_part('RimS', (x0, 14, x1 - rim), (x1, 15, x1), (2, 0), (2, 0)),
+        _mill_part('RimW', (x0, 14, x0 + rim), (x0 + rim, 15, x1 - rim), (2, 0), (2, 0)),
+        _mill_part('RimE', (x1 - rim, 14, x0 + rim), (x1, 15, x1 - rim), (2, 0), (2, 0)),
+        _mill_part('Spout', (6, 2.5, 0.3), (10, 5.5, 3), (2, 3), (2, 3)),                    # 出口
+        _mill_part('Tray', (4.5, 2, 0), (11.5, 3, 2), (1, 3), (1, 3)),                  # 受け皿
+        _mill_part('Wheel', (13, 3.5, 6), (15, 8.5, 10), (2, 1), (2, 1)),                    # はずみ車
+        _mill_part('Handle', (14.5, 7, 7.2), (16, 8.4, 8.8), (3, 2), (3, 2)),                # 取っ手（朱）
+    ]
+
+
 def _cube(name, start, end, faces, rotation=None):
     part = {'name': name, 'from': list(start), 'to': list(end),
             'faces': {face: {'uv': uv, 'texture': '#0'} for face, uv in faces.items()}}
@@ -124,14 +161,7 @@ def geometry(name, image=None):
         raise ValueError('Unknown rice item: ' + name)
     full = [0, 0, 16, 16]
     if name == 'mill':
-        base = [0, 8, 8, 16]
-        top, side = [0, 0, 8, 8], [8, 0, 16, 8]
-        return [
-            _cube('Base', (1, 0, 1), (15, 3, 15), _box_faces(base, base, base)),
-            _cube('Top', (2, 3, 2), (14, 7, 14), _box_faces(top, side, side)),
-            _cube('Hopper', (6.5, 7, 6.5), (9.5, 7.4, 9.5), _box_faces([8, 12, 12, 16], [8, 12, 12, 16], [8, 12, 12, 16])),
-            _cube('Handle', (11.25, 7, 7.25), (12.75, 12, 8.75), _box_faces([12, 8, 16, 12], [8, 8, 12, 12], [8, 8, 12, 12])),
-        ]
+        return _mill_geometry()
     if name.startswith('plant_'):
         # バニラの作物と同じ。幅いっぱいの板を、45度ずつ振って交差させる（足元は耕地の面より1下まで伸ばす）。
         def plane(label, angle):
@@ -148,14 +178,14 @@ GENERATED = {'gui': {'rotation': [0, 0, 0], 'translation': [0, 0, 0], 'scale': [
              'thirdperson_righthand': {'rotation': [0, 0, 0], 'translation': [0, 3, 1], 'scale': [0.55, 0.55, 0.55]},
              'firstperson_righthand': {'rotation': [0, -90, 25], 'translation': [1.13, 3.2, 1.13], 'scale': [0.68, 0.68, 0.68]}}
 FIXED_PLAIN = {'rotation': [0, 0, 0], 'translation': [0, 0, 0], 'scale': [1, 1, 1]}
-MILL = {'gui': {'rotation': [30, 225, 0], 'translation': [0, -1, 0], 'scale': [0.8, 0.8, 0.8]},
+MILL = {'gui': {'rotation': [30, 225, 0], 'translation': [0, -1, 0], 'scale': [0.62, 0.62, 0.62]},
         'ground': {'translation': [0, 3, 0], 'scale': [0.4, 0.4, 0.4]},
         'firstperson_righthand': {'rotation': [0, -35, 0], 'translation': [0, 2, 0], 'scale': [0.55, 0.55, 0.55]},
         'thirdperson_righthand': {'rotation': [75, 45, 0], 'translation': [0, 2, 0], 'scale': [0.45, 0.45, 0.45]}}
 
 
 def display(name):
-    """fixed（ItemDisplay）は、回転・移動・拡大なし。田んぼの稲と石臼は、世界に出すときこの形で置く。"""
+    """fixed（ItemDisplay）は、回転・移動・拡大なし。田んぼの稲と精米機は、世界に出すときこの形で置く。"""
     if name.startswith('plant_'):
         return {'fixed': FIXED_PLAIN, 'gui': GENERATED['gui'], 'ground': GENERATED['ground'],
                 'firstperson_righthand': GENERATED['firstperson_righthand'],

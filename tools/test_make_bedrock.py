@@ -228,13 +228,13 @@ class AllItemsTests(unittest.TestCase):
 
 
 class BlockTests(unittest.TestCase):
-    """石臼のように、ハーフブロックの上に立つ置き物を、統合版のカスタムブロックにする。"""
+    """精米機のように、ハーフブロックの上に立つ置き物を、統合版のカスタムブロックにする。"""
     ROOT = None
-    # 石臼（下半分）とまな板（2段）は、同じ Java のブロック（石化したオークのハーフブロック）の、別の状態を使う。
+    # 精米機（下半分）とまな板（2段）は、同じ Java のブロック（石化したオークのハーフブロック）の、別の状態を使う。
     TABLE = {"board": {"java_block": "minecraft:petrified_oak_slab", "state": "type=double,waterlogged=false",
                        "slab_height": 0, "model": "block/board", "display_name": "Cutting Board"},
              "rice/mill": {"java_block": "minecraft:petrified_oak_slab", "state": "type=bottom,waterlogged=false",
-                           "slab_height": 8, "display_name": "Stone Mill"}}
+                           "slab_height": 8, "display_name": "Rice Mill"}}
 
     @classmethod
     def setUpClass(cls):
@@ -369,7 +369,7 @@ class BlockTests(unittest.TestCase):
 
     def test_the_mill_item_is_placed_as_the_block_that_geyser_replaces(self):
         # 見せかけを送る方式は、統合版で壊せなかった（Geyser は、サーバー上の本物のブロックで壊す処理を進めるため）。
-        # 石臼のアイテムを置くと、置き換え対象のブロックそのものが置かれるようにそろえる。
+        # 精米機のアイテムを置くと、置き換え対象のブロックそのものが置かれるようにそろえる。
         import json
         import os
         here = os.path.dirname(os.path.abspath(__file__))
@@ -386,13 +386,13 @@ class BlockTests(unittest.TestCase):
         with open(path, encoding="utf-8") as handle:
             variants = json.load(handle)["variants"]
         self.assertEqual({key: value["model"] for key, value in variants.items()}, {
-            "type=bottom": "minecraft:block/smooth_stone_slab",       # 石臼の土台
+            "type=bottom": "minecraft:block/smooth_stone_slab",       # 精米機の土台
             "type=top": "minecraft:block/smooth_stone_slab_top",
             "type=double": "hnmt:block/board",                         # まな板（台の上にまな板と包丁が乗った形）
         })
 
     def test_no_two_geometries_in_the_pack_share_an_identifier(self):
-        # 石臼は、アイテム（手に持つ）とブロックの両方になる。ジオメトリの名前が同じだと、片方がもう片方を上書きして、手に持った石臼が消える。
+        # 精米機は、アイテム（手に持つ）とブロックの両方になる。ジオメトリの名前が同じだと、片方がもう片方を上書きして、手に持った精米機が消える。
         import glob
         import json
         import os

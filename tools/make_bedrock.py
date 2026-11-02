@@ -204,13 +204,13 @@ def build_mappings(bases, flat=frozenset(), cast=frozenset()):
     return {"format_version": 2, "items": items}
 
 
-# ---- カスタムブロック（石臼） ----
+# ---- カスタムブロック（精米機） ----
 
 BLOCKS_FILE = "hnmt_blocks.json"
 
 
 def block_geometry(model, identifier, texture_px, slab_height, slab_uv=(0, 8, 8, 16)):
-    """ハーフブロックの上に立つ置き物（石臼）を、1ブロックぶんのジオメトリにする。
+    """ハーフブロックの上に立つ置き物（精米機）を、1ブロックぶんのジオメトリにする。
 
     サーバーの本物のブロックはハーフブロック（高さ slab_height）で、その上に Java 版では ItemDisplay でモデルを重ねている。
     統合版には ItemDisplay がないので、ハーフブロックと置き物を、1つのブロックの絵にする。
@@ -256,7 +256,7 @@ def build_block_mappings(blocks):
 
     blocks は {アイテムID: {java_block, state, slab_height, display_name, （model）}}。Java のブロックの状態を、
     指定した状態だけ、カスタムブロックに置き換える（only_override_states）。ほかの状態は、そのまま。
-    同じ Java のブロックの、別の状態に、別のブロックを結べる（石臼は石化したオークの下半分、まな板は2段）。
+    同じ Java のブロックの、別の状態に、別のブロックを結べる（精米機は石化したオークの下半分、まな板は2段）。
     定義（name）は Java のブロックごとに1つで、見た目（geometry と material_instances）は、状態ごとに書く。
     """
     grouped = {}
