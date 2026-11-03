@@ -1,4 +1,4 @@
-/* Blockbench本体のJava/Project codecで稲・苗・石臼を書き出す。Playwrightは実行環境から指定する。 */
+/* Blockbench本体のJava/Project codecで稲・苗・精米機を書き出す。Playwrightは実行環境から指定する。 */
 const fs = require('node:fs');
 const path = require('node:path');
 const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
@@ -36,7 +36,7 @@ if (!Array.isArray(entries) || entries.length !== 7 || new Set(entries.map(entry
     });
     const groups = {};
     for (const cube of Cube.all) {
-     const category = entry.name === 'mill' ? (cube.name.startsWith('Base') ? 'Base' : cube.name.startsWith('Handle') ? 'Handle' : 'Top') : cube.name.startsWith('Plant') ? 'Plant' : 'Sprite';
+     const category = entry.name === 'mill' ? (/^(Base|Tray)$/.test(cube.name) ? 'Base' : /^(Body|Hoop)/.test(cube.name) ? 'Body' : /^(Hopper|Rim)/.test(cube.name) ? 'Hopper' : 'Parts') : cube.name.startsWith('Plant') ? 'Plant' : 'Sprite';
      groups[category] ||= new Group({name:category}).init();
      cube.addTo(groups[category]);
     }

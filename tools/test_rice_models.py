@@ -41,7 +41,7 @@ class RiceModelTests(unittest.TestCase):
                 self.assertEqual(image.size, (16, 16))
                 self.assertEqual(image.mode, 'RGBA')
                 alpha = set(image.getchannel('A').get_flattened_data())
-                self.assertEqual(alpha, {255} if name == 'mill' else {0, 255})   # 石臼は、領域を並べた不透明の絵
+                self.assertEqual(alpha, {255} if name == 'mill' else {0, 255})   # 精米機は、小片を並べた不透明の絵
                 self.assertLessEqual(len(set(image.get_flattened_data())), 16)
                 self.assertEqual(image.tobytes(), texture(name).tobytes())
                 signatures.add(image.tobytes())
@@ -58,7 +58,7 @@ class RiceModelTests(unittest.TestCase):
                 self.assertEqual(base64.b64decode(data), (PACK/'assets/hnmt/textures/item/rice'/f'{name}.png').read_bytes())
                 self.assertEqual(len(project['elements']), len(self.model(name)['elements']))
                 groups = {group['name'] for group in project['groups']}
-                expected = {'Base', 'Top', 'Handle'} if name == 'mill' else {'Plant'} if name.startswith('plant_') else {'Sprite'}
+                expected = {'Base', 'Body', 'Hopper', 'Parts'} if name == 'mill' else {'Plant'} if name.startswith('plant_') else {'Sprite'}
                 self.assertEqual(groups, expected)
 
     def test_export_matches_source_geometry(self):
@@ -78,7 +78,8 @@ class RiceModelTests(unittest.TestCase):
     def test_cuboid_budget_stays_small(self):
         # 田んぼには何十本も並ぶので、重くしない（前の版は、実りで158個だった）。
         for name, _ in RICE:
-            self.assertLessEqual(len(self.model(name)['elements']), 4)
+            # 精米機は、1台ずつ置く機械なので、直方体を多めにする（田んぼの稲や苗は、4個まで）
+            self.assertLessEqual(len(self.model(name)['elements']), 16 if name == 'mill' else 4)
 
     def test_uvs_only_sample_opaque_pixels(self):
         for name, _ in RICE:
@@ -105,11 +106,16 @@ class RiceModelTests(unittest.TestCase):
             self.assertEqual(fixed.get('translation', [0, 0, 0]), [0, 0, 0])
             self.assertEqual(fixed.get('scale', [1, 1, 1]), [1, 1, 1])
 
-    def test_mill_sits_on_the_slab_and_stacks_upward(self):
+    def test_mill_sits_on_the_slab_and_the_hopper_widens_upward(self):
         mill = {part['name']: part for part in self.model('mill')['elements']}
         self.assertEqual(mill['Base']['from'][1], 0)
-        self.assertEqual(mill['Top']['from'][1], mill['Base']['to'][1])
-        self.assertGreaterEqual(mill['Hopper']['from'][1], mill['Top']['to'][1])
+        self.assertEqual(mill['Body']['from'][1], mill['Base']['to'][1])
+        self.assertEqual(mill['Hopper1']['from'][1], mill['Body']['to'][1])
+        widths = [mill[name]['to'][0] - mill[name]['from'][0] for name in ('Hopper1', 'Hopper2', 'Hopper3')]
+        self.assertEqual(widths, sorted(widths), "漏斗は、上へ向かって広がる")
+        self.assertLessEqual(max(part['to'][1] for part in mill.values()), 16, "1ブロックの高さに収める")
+        for part in mill.values():
+            for axis in range(3): self.assertGreaterEqual(min(part['from'][axis], part['to'][axis]), -16)
         fixed = self.model('mill')['display'].get('fixed', {})
         self.assertEqual((fixed.get('rotation', [0, 0, 0]), fixed.get('translation', [0, 0, 0]), fixed.get('scale', [1, 1, 1])), ([0, 0, 0], [0, 0, 0], [1, 1, 1]))
 
