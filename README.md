@@ -38,6 +38,9 @@ Minecraft サーバー「日ノ本鯖」の、リソースパックの元デー�
 | `blockbench/dish` | 料理のBlockbench編集元。32×32テクスチャを埋め込み済み |
 | `blockbench/board`・`assets/hnmt/models/block/board.json` | まな板のブロック（台の上にまな板と包丁が乗った形）の編集元とモデル |
 | `assets/hnmt/textures/item/dish3d` | 料理3D版専用の32×32 UVアトラス。2Dアイコンとは別に管理 |
+| `assets/hnmt/textures/item/rtp/<列>_<行>.png` | RTPの地図壁のタイル（128×128、6×6）。額縁の `item_model`（`hnmt:rtp/<列>_<行>`）から参照 |
+| `assets/hnmt/models/rtp/<列>_<行>.json` | RTPタイルのモデル。額縁で1ブロック大になるよう `display.fixed` を拡大 |
+| `assets/hnmt/models/item/rtp/<列>_<行>.json` | 統合版の生成に使う、平らなアイコン版のモデル |
 | `tools/` | テクスチャとモデルを作るスクリプト、zip を作るスクリプト |
 
 魚の ID: `unagi`・`salmon`・`kohada`・`konoshiro`・`tai`・`hirame`・`saba`・`hamachi`・`buri`・`ika`・`kanpachi`・`maguro`（出世魚は、若魚と成魚で別の見た目）。
@@ -117,7 +120,7 @@ python3 -m unittest discover -s tools -p 'test_blender_coolers.py'
 | ファイル | 置き先（Geyser のフォルダの中） | 内容 |
 | --- | --- | --- |
 | `hnmt-bedrock.mcpack` | `packs/` | 統合版用のパック（ジオメトリ・attachable・アニメーション・アイコン） |
-| `hnmt.json` | `custom_mappings/` | `item_model` と、統合版のアイテムの対応づけ（カスタムアイテム API の形式2） |
+| `hnmt.json` | `custom_mappings/` | `item_model` と、統合版のアイテムの対応づけ（カスタムアイテム API の形式2）。RTPのタイル36枚（`hnmt:rtp_*`）を含む |
 | `hnmt_blocks.json` | `custom_mappings/` | カスタムブロックの対応づけ（形式1）。精米機を、見せかけのブロックの状態に結ぶ |
 | `bedrock.json` | （置かない） | 更新の情報。置くファイルの名前・置き先・URL・SHA-1 |
 
