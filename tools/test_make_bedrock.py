@@ -184,6 +184,8 @@ class AllItemsTests(unittest.TestCase):
         # 町のメニューのアイコンは、平らな絵の品（3Dモデルは持たない）。GUI のボタンとして、統合版にも出す。
         with open(os.path.join(self.ROOT, "tools", "menu_icons.json"), encoding="utf-8") as handle:
             items |= {"menu/" + name for name in json.load(handle)}
+        # RTPの地図壁のタイルは、平らな絵の品（3Dモデルは持たない）。額縁に入れるので、統合版にも出す。
+        items |= {"rtp/%d_%d" % (col, row) for row in range(6) for col in range(6)}
         # 釣竿は入れない。統合版では、カスタムアイテムにすると、釣りボタンが出ず、手に持つ向きも反転するので、
         # ふつうの釣竿のままにする（2026-10-20 決定）。
         return items
@@ -215,6 +217,12 @@ class AllItemsTests(unittest.TestCase):
             for item in self.bases():
                 name = make_bedrock.safe_name(item)
                 if item.startswith("rod/") or item.startswith("menu/"):
+                    continue
+                with open(make_bedrock._model_path(self.ROOT, item), encoding="utf-8") as handle:
+                    model = json.load(handle)
+                if not model.get("elements"):
+                    # 平らな絵の品（RTPのタイルなど）は、ジオメトリを持たない。
+                    self.assertTrue(os.path.exists(os.path.join(pack, "textures", "items", "hnmt", name + ".png")), name)
                     continue
                 for path in ("models/entity/hnmt_%s.geo.json", "animations/hnmt_%s.animation.json", "attachables/hnmt_%s.json",
                              "textures/entity/hnmt/%s.png"):
