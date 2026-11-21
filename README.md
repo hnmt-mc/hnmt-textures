@@ -124,6 +124,24 @@ python3 tools/make_wafu_food.py            # 絵とモデルを書き出す
 python3 tools/make_wafu_food.py --preview  # 絵を拡大して並べる（build/food/preview.png）
 ```
 
+## 刀と鞘のモデル
+
+刀（鉄・ダイヤ・ネザライト）・妖刀・名刀（和泉守兼定・長曽祢虎徹）・刺股・レイピアと、鞘（空と、刀が入った状態）を追加しています。
+名前は `hnmt:sword/<名前>` です。32×32の平らなアイコンで、`tools/make_blades.py` が作ります（絵の編集元は、この道具です）。
+
+| 名前 | 見た目 | 持ち方 |
+| --- | --- | --- |
+| `katana_iron` `katana_diamond` `katana_netherite` `youtou` `meito_izumi` `meito_nagasone` `sasumata` `rapier` | 刀・刺股・レイピア | 剣と同じ（`item/handheld`） |
+| `sheath` `sheath_full` | 鞘（空・刀入り） | 物のように（`item/generated`） |
+
+統合版（Geyser）は、10種類すべてを対応づけます。元のアイテムは、刀・名刀・刺股・レイピアがバニラの剣（鉄・ダイヤ・ネザライト）、鞘が火打石です。
+「元のアイテム」と見た目の組が、種類ごとに重ならないようにしています。
+
+```sh
+python3 tools/make_blades.py            # 絵とモデルを書き出す
+python3 tools/make_blades.py --preview  # 絵を拡大して並べる（build/blades/preview.png）
+```
+
 ## クーラーボックス
 魚専用の持ち運び箱（`hnmt:cooler/small`・`medium`・`large`）の見た目です。テクスチャは32x32で、輪郭と本体・蓋・氷・留め具の8色だけで描いています。モデルは直方体6〜8個の3Dで、平らなアイコン版・3D版のどちらの zip にも同じものが入ります。パックがなければ、元の樽のまま表示されます。
 
