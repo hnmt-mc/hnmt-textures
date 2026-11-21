@@ -103,6 +103,27 @@ Playwrightの準備は「料理の3Dモデルを編集する」と共通です�
 Blockbench Web 5.2.2で7種類の書き出しと、編集元の再読み込みを確認しています。
 プレビューと確認記録は `build/rice3d/` に出力します。Blenderは使用しません。
 
+## 食べ物のモデル
+
+餅・団子・粉・麺・お茶・南蛮菓子・そばと茶の苗と作物・5つの道具（臼と杵・挽き臼・麺打ち台・茶釜・南蛮菓子の窯）を追加しています。
+名前は `hnmt:food/<名前>` です。16×16の絵は、`tools/make_wafu_food.py` が作ります（絵の編集元は、この道具です）。
+
+| 種類 | 名前 | 見た目 |
+| --- | --- | --- |
+| 材料 | `buckwheat` `tea_leaf` `wheat_flour` `buckwheat_flour` `matcha_powder` `chawan` | 平らなアイコン |
+| 料理・飲み物 | `mochi` `dango` `udon` `soba` `konpeito` `kasutera` `green_tea` `matcha` | 平らなアイコン |
+| 苗 | `buckwheat_seedling` `tea_seedling` | 平らなアイコン |
+| 道具 | `mortar` `grinder` `noodle` `kettle` `oven` | 直方体のモデル（`models3d/food`）と、平らなアイコン（`<名前>_icon.png`） |
+| 作物 | `buckwheat_plant_*` `tea_plant_*`（`seedling` `growing` `mature`） | 交差した板2枚（米作りの稲と同じ。持ち物のアイテムではない） |
+
+統合版（Geyser）の対応は、材料・料理・苗・道具の21種類です（作物は、稲と同じく見せかけの表示で、対象にしません）。
+元のアイテムは、材料が火打石、料理と飲み物がパン、苗が小麦の種、道具がそれぞれ別のハーフブロックです。
+
+```sh
+python3 tools/make_wafu_food.py            # 絵とモデルを書き出す
+python3 tools/make_wafu_food.py --preview  # 絵を拡大して並べる（build/food/preview.png）
+```
+
 ## クーラーボックス
 魚専用の持ち運び箱（`hnmt:cooler/small`・`medium`・`large`）の見た目です。テクスチャは32x32で、輪郭と本体・蓋・氷・留め具の8色だけで描いています。モデルは直方体6〜8個の3Dで、平らなアイコン版・3D版のどちらの zip にも同じものが入ります。パックがなければ、元の樽のまま表示されます。
 

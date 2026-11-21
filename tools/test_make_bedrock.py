@@ -181,6 +181,12 @@ class AllItemsTests(unittest.TestCase):
         # 田んぼに立つ稲（rice/plant_*）は、世界に出す ItemDisplay 用で、持ち物のアイテムではない。
         # 統合版で見えるかが未確認なので、対象にしない（2026-10-21 決定）。
         items -= {"rice/plant_seedling", "rice/plant_growing", "rice/plant_mature"}
+        # そば・茶の作物（food/*_plant_*）も、稲と同じ。世界に出す ItemDisplay 用で、持ち物のアイテムではない。
+        items = {item for item in items if "_plant_" not in item}
+        # 食べ物のうち、材料・料理・飲み物・苗は、平らな絵の品（3Dモデルは持たない）。持ち物のアイテムなので、統合版にも出す。
+        # 5つの道具（mortar・grinder・noodle・kettle・oven）は、3Dモデルがあるので、models3d から数えられている。
+        with open(os.path.join(self.ROOT, "tools", "bedrock_bases.json"), encoding="utf-8") as handle:
+            items |= {name for name in json.load(handle) if name.startswith("food/")}
         # 町のメニューのアイコンは、平らな絵の品（3Dモデルは持たない）。GUI のボタンとして、統合版にも出す。
         with open(os.path.join(self.ROOT, "tools", "menu_icons.json"), encoding="utf-8") as handle:
             items |= {"menu/" + name for name in json.load(handle)}
