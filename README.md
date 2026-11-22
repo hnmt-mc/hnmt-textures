@@ -150,6 +150,10 @@ python3 tools/make_wafu_food.py --preview  # 絵を拡大して並べる（build
 
 上の5つがすべて入っているときだけ、`pack.json` の `capabilities` に `blade-sounds-v1` が載ります。攻撃の4つまで入っているときは、`blade-attack-sounds-v1` も載ります。対応版 hnmt-core は、この目印を見て、パックの音が入っている Java 版の人にだけパックの音を鳴らします。パックを入れていない人（統合版を含む）には、バニラの音のままです。
 
+## 刀の画面の演出
+
+居合の一撃（白い斬撃の線）と妖刀の吸血（画面の周りの赤いにじみ）で、サーバーが、パックの文字を一瞬のタイトルとして画面に重ねます。絵は `assets/hnmt/textures/font/blade_slash.png`・`blade_drain.png`（512×256、透明）、文字の登録は `assets/hnmt/font/blade.json`（`\uE000` が斬撃、`\uE001` が吸血）です。絵は `python3 tools/make_blade_screens.py` で作り直せます（`--preview` で見本）。フォントと2枚の絵がすべて入っているときだけ、`pack.json` の `capabilities` に `blade-screen-v1` が載り、対応版 hnmt-core がこの演出を出します。Java 版でパックが入っている人だけの演出で、統合版・パックなしの人には出ません（世界の中の粒の演出は、パックなしでも見えます）。
+
 音は、Ben Jaszczak と Brian Nelson が録音した [Medieval sound effects - Weapon Textures](https://opengameart.org/content/medieval-sound-effects-weapon-textures)（CC0）の、刀を抜く・しまう・振る音とサーベルを振る音から切り出し、mono 44.1kHz の ogg にしています。妖刀の音だけは、刀をゆっくり抜く録音の音程を下げて、高域を抑えた加工です。
 「元のアイテム」と見た目の組が、種類ごとに重ならないようにしています。
 

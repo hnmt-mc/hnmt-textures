@@ -36,6 +36,21 @@ def blade_sounds(archive, wanted=BLADE_SOUNDS):
     return True
 
 
+BLADE_SCREEN_CHARS = {'blade_slash': '\ue000', 'blade_drain': '\ue001'}
+
+
+def blade_screens(archive):
+    """画面の演出は、フォントの定義と、それが指す絵がすべて ZIP に入っているときだけ、使えるとみなす。"""
+    providers = json.loads(archive.read('assets/hnmt/font/blade.json'))['providers']
+    seen = {}
+    for provider in providers:
+        if provider.get('type') != 'bitmap': continue
+        name = provider['file'].split(':', 1)[1]
+        if archive.getinfo('assets/hnmt/textures/' + name).file_size <= 0: return False
+        seen[name] = ''.join(provider['chars'])
+    return all(seen.get('font/' + key + '.png') == char for key, char in BLADE_SCREEN_CHARS.items())
+
+
 def capabilities(data):
     """Only advertise interaction support when its actual assets are in the ZIP."""
     found = []
@@ -43,6 +58,7 @@ def capabilities(data):
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             if blade_sounds(archive): found.append('blade-sounds-v1')
             if blade_sounds(archive, BLADE_SOUNDS + BLADE_ATTACK_SOUNDS): found.append('blade-attack-sounds-v1')
+            if blade_screens(archive): found.append('blade-screen-v1')
     except (zipfile.BadZipFile, KeyError, ValueError, TypeError, AttributeError):
         pass
     return found + rice_capabilities(data)
