@@ -72,14 +72,19 @@ class GunAssetTests(unittest.TestCase):
         opaque = sum(1 for p in scope.getdata() if p[3] > 0)
         self.assertLess(opaque / (512 * 256), 0.08, '照準が覆う面積は、画面の8%より小さい')
 
-    def test_the_scope_view_covers_the_edges_and_opens_a_circular_lens(self):
+    def test_the_scope_view_is_a_ring_with_a_clear_lens_and_clear_surroundings(self):
         from PIL import Image
         view = Image.open(ROOT / 'assets/hnmt/textures/misc/gun_scope.png')
         self.assertEqual((view.size, view.mode), ((1024, 576), 'RGBA'))
-        for corner in ((2, 2), (1021, 2), (2, 573), (1021, 573)):
-            self.assertEqual(view.getpixel(corner)[3], 255, '四隅は、黒')
-        self.assertEqual(view.getpixel((512 + 100, 288 + 60))[3], 0, '円の中は、透明')
-        self.assertEqual(view.getpixel((512, 288))[:3], (230, 40, 40), '中央は、赤い点')
+        for corner in ((2, 2), (1021, 2), (2, 300), (1021, 300)):
+            self.assertEqual(view.getpixel(corner)[3], 0, '縁の外（四隅・左右）は、透明（景色が見える）')
+        cx, cy = 512, int(576 * 0.43)
+        self.assertEqual(view.getpixel((cx + 90, cy + 60))[3] < 80, True, 'レンズの中は、ほぼ透明')
+        self.assertEqual(view.getpixel((cx, cy - 175))[3], 255, '筒の縁（円環）は、不透明な黒')
+        self.assertEqual(view.getpixel((cx, cy))[:3], (230, 40, 40), '中央は、赤い点')
+        self.assertEqual(view.getpixel((cx, 570))[3], 255, '画面の下には、銃の本体がある')
+        opaque = sum(1 for p in view.getdata() if p[3] > 200)
+        self.assertLess(opaque / (1024 * 576), 0.35, '視界の大半は、覆わない')
 
     def test_the_scope_view_capability_needs_the_picture(self):
         self.assertIn('gun-scope-v1', make_manifest.manifest('v0.11.2', packed())['capabilities'])

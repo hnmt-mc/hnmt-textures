@@ -60,35 +60,54 @@ SCOPE_W, SCOPE_H = 1024, 576      # 16:9。画面いっぱいに引き伸ばさ�
 
 
 def scope_view():
-    """スコープを覗いた画面。円の外は黒、円の中は透明。円の中に、太い黒の線が縁から中央へ細くなる十字線と、目盛りの点。
-    サーバーが、頭の防具を一時的に、この絵のかぶり物（equippable の camera_overlay）に見せかけて、画面いっぱいに出す。"""
-    image = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 255))
-    cx, cy = SCOPE_W / 2, SCOPE_H / 2
-    radius = SCOPE_H * 0.47
+    """スコープを覗いた画面。画面の中央に、スコープの筒の厚い黒い縁（円環）があり、中は透明なレンズ（細い十字線つき）。
+    縁の下には、スコープを載せた銃の本体の影が、画面の下へ伸びる。縁の外も、透明（景色が見える）。
+    サーバーが、頭の防具を一時的に、この絵のかぶり物（equippable の camera_overlay）に見せかけて、画面いっぱいに出す（16:9 に引き伸ばされる）。"""
+    image = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 0))
+    cx, cy = SCOPE_W / 2, SCOPE_H * 0.43
+    inner, outer = SCOPE_H * 0.27, SCOPE_H * 0.35
     px = image.load()
+    # 銃の本体: 筒の下から、画面の下へ向かって、少し広がる暗い青灰色の影。左右の端は、金属のハイライト
+    top_y = cy + outer - 12
+    for y in range(int(top_y), SCOPE_H):
+        f = (y - top_y) / (SCOPE_H - top_y)
+        half = 62 + 58 * f
+        for x in range(int(cx - half), int(cx + half) + 1):
+            u = (x - cx) / half
+            shade = 1.0 - 0.55 * abs(u) ** 2
+            base = (34, 40, 58)
+            lit = tuple(int(c * (0.55 + 0.8 * max(0.0, -u * 0.6 + 0.35))) for c in base)
+            px[x, y] = (min(255, int(lit[0] * shade)), min(255, int(lit[1] * shade)), min(255, int(lit[2] * shade)), 255)
+    # 筒の縁（円環）。外側は、ややぼかす
     for y in range(SCOPE_H):
         for x in range(SCOPE_W):
             d = math.hypot(x + 0.5 - cx, y + 0.5 - cy)
-            if d <= radius - 5: px[x, y] = (0, 0, 0, 0)
-            elif d <= radius: px[x, y] = (0, 0, 0, int(255 * (d - (radius - 5)) / 5))    # レンズの縁（なめらかに黒へ）
-    ring = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(ring)
-    r = radius - 4
-    # 十字線: 縁は太く、中央へ細くなる（先細りの帯）。中央は、あけて、赤い点
+            if inner - 6 <= d <= outer + 4:
+                if d < inner: a = int(255 * (d - (inner - 6)) / 6)             # レンズの内側の縁（なめらかに黒へ）
+                elif d <= outer: a = 255
+                else: a = int(255 * (1 - (d - outer) / 4))                       # 外側の縁
+                shade = 18 + int(26 * max(0.0, 1 - abs((d - (inner + outer) / 2)) / ((outer - inner) / 2)) ** 3 * (0.5 + 0.5 * math.cos(math.atan2(y - cy, x - cx) + 2.3)))
+                r, g, b, old = px[x, y]
+                px[x, y] = (shade, shade, shade + 4, max(a, old))
+    layer = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    r = inner - 4
+    # 十字線: 細い線を、レンズいっぱいに。中央は、少しあける。小さな目盛り
     for sign in (-1, 1):
-        for step in range(int(r - 26)):
-            t = step / (r - 26)
-            width = 1 + 6 * (1 - t) ** 2                     # 中央側が細く、縁側が太い
-            x = cx + sign * (26 + (r - 26) * (1 - t))
-            draw.rectangle((x - 0.5, cy - width / 2, x + 0.5, cy + width / 2), fill=(0, 0, 0, 255))
-            y = cy + sign * (26 + (r - 26) * (1 - t))
-            draw.rectangle((cx - width / 2, y - 0.5, cx + width / 2, y + 0.5), fill=(0, 0, 0, 255))
-    for k in (1, 2, 3, 4):                                    # 目盛りの点
-        for sign in (-1, 1):
-            for dx, dy in ((k * 42 * sign, 0), (0, k * 42 * sign)):
-                draw.ellipse((cx + dx - 3, cy + dy - 3, cx + dx + 3, cy + dy + 3), fill=(0, 0, 0, 255))
+        draw.line((cx + sign * 14, cy, cx + sign * r, cy), fill=(10, 10, 12, 235), width=2)
+        draw.line((cx, cy + sign * 14, cx, cy + sign * r), fill=(10, 10, 12, 235), width=2)
+        for k in (1, 2, 3):
+            draw.line((cx + sign * k * 34, cy - 4, cx + sign * k * 34, cy + 4), fill=(10, 10, 12, 235), width=2)
+            draw.line((cx - 4, cy + sign * k * 34, cx + 4, cy + sign * k * 34), fill=(10, 10, 12, 235), width=2)
     draw.ellipse((cx - 3, cy - 3, cx + 3, cy + 3), fill=(230, 40, 40, 255))
-    image.alpha_composite(ring)
+    # レンズの内側を、ほんの少し暗く（筒の中を覗いている感じ）
+    for y in range(SCOPE_H):
+        for x in range(SCOPE_W):
+            d = math.hypot(x + 0.5 - cx, y + 0.5 - cy)
+            if d < inner - 6:
+                a = int(70 * max(0.0, (d / (inner - 6) - 0.55) / 0.45) ** 2)
+                if a: layer.putpixel((x, y), (0, 0, 0, a)) if layer.getpixel((x, y))[3] == 0 else None
+    image.alpha_composite(layer)
     return image
 
 
