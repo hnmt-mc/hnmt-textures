@@ -78,5 +78,37 @@
         "volume": 1.0
       }
     ]
+  },
+  "gun.fire": {
+    "sounds": [
+      {
+        "name": "hnmt:gun/fire",
+        "volume": 1.0
+      }
+    ]
+  },
+  "gun.fire_short": {
+    "sounds": [
+      {
+        "name": "hnmt:gun/fire_short",
+        "volume": 1.0
+      }
+    ]
+  },
+  "gun.fire_scatter": {
+    "sounds": [
+      {
+        "name": "hnmt:gun/fire_scatter",
+        "volume": 1.0
+      }
+    ]
+  },
+  "gun.misfire": {
+    "sounds": [
+      {
+        "name": "hnmt:gun/misfire",
+        "volume": 0.9
+      }
+    ]
   }
 }

@@ -150,6 +150,28 @@ python3 tools/make_wafu_food.py --preview  # 絵を拡大して並べる（build
 
 上の5つがすべて入っているときだけ、`pack.json` の `capabilities` に `blade-sounds-v1` が載ります。攻撃の4つまで入っているときは、`blade-attack-sounds-v1` も載ります。対応版 hnmt-core は、この目印を見て、パックの音が入っている Java 版の人にだけパックの音を鳴らします。パックを入れていない人（統合版を含む）には、バニラの音のままです。
 
+## 銃と弾
+
+火縄銃・短筒（それぞれ、火縄に火が付いた装填済みの絵つき）と、弾3種（鉄砲弾・焼夷弾・散弾）を追加しています。絵とモデルは `python3 tools/make_guns.py` で作り直せます（`--preview` で見本）。
+
+| モデル名（`hnmt:gun/<名前>`） | 品 | 持ち方 |
+|---|---|---|
+| `matchlock` `matchlock_loaded` | 火縄銃（空・装填済み） | 道具と同じ（`item/handheld`） |
+| `tanzutsu` `tanzutsu_loaded` | 短筒（空・装填済み） | 道具と同じ（`item/handheld`） |
+| `ammo_teppo` `ammo_shoidan` `ammo_sandan` | 鉄砲弾・焼夷弾・散弾 | 物のように（`item/generated`） |
+
+統合版（Geyser）は、7種類すべてを対応づけます。元のアイテムは、火縄銃が棒、短筒がブレイズロッド、鉄砲弾が金の粒、焼夷弾がマグマクリーム、散弾が火薬です。
+
+### 銃の音
+
+発射（`hnmt:gun.fire`＝火縄銃、`gun.fire_short`＝短筒、`gun.fire_scatter`＝散弾）と、不発（`gun.misfire`）の音を、`assets/hnmt/sounds/gun/` に入れています。4つがすべて入っているときだけ、`pack.json` の `capabilities` に `gun-sounds-v1` が載ります。装填・火縄の消え・弾の切り替え・スコープの音は、録音がないので、パックが入っていても、バニラの音です。
+
+音は、Ben Jaszczak・Brian Nelson・Kevin Heras・Matthew Nanney が録音した [The Free Firearm Sound Library](https://opengameart.org/content/the-free-firearm-sound-library)（CC0）の、Arisaka（火縄銃）・Ruger Single Six（短筒）・Mossberg（散弾。不発は、同じ銃の空打ちの音）の録音から切り出し、mono 44.1kHz の ogg にしています。現代の銃の実録音なので、戦国の火縄銃の音そのものではありません。
+
+### 銃の画面の演出
+
+発射のフラッシュ・スコープの照準・装填中の種火の光・不発の灰色のにじみを、サーバーが、パックの文字として画面に重ねます。絵は `assets/hnmt/textures/font/gun_flash.png`・`gun_scope.png`・`gun_ember.png`・`gun_smoke.png`（512×256、透明）、文字の登録は `assets/hnmt/font/gun.json`（`\uE010`〜`\uE013`）です。`python3 tools/make_gun_screens.py` で作り直せます（`--preview` で見本）。フォントと4枚の絵がすべて入っているときだけ、`capabilities` に `gun-screen-v1` が載ります。Java 版でパックが入っている人だけの演出です。
+
 ## 刀の画面の演出
 
 居合の一撃（白い斬撃の線）と妖刀の吸血（画面の周りの赤いにじみ）で、サーバーが、パックの文字を一瞬のタイトルとして画面に重ねます。絵は `assets/hnmt/textures/font/blade_slash.png`・`blade_drain.png`（512×256、透明）、文字の登録は `assets/hnmt/font/blade.json`（`\uE000` が斬撃、`\uE001` が吸血）です。絵は `python3 tools/make_blade_screens.py` で作り直せます（`--preview` で見本）。フォントと2枚の絵がすべて入っているときだけ、`pack.json` の `capabilities` に `blade-screen-v1` が載り、対応版 hnmt-core がこの演出を出します。Java 版でパックが入っている人だけの演出で、統合版・パックなしの人には出ません（世界の中の粒の演出は、パックなしでも見えます）。

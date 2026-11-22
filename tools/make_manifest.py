@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 BLADE_SOUNDS = ('blade.draw', 'blade.sheath', 'blade.iai', 'blade.dash', 'blade.youtou')
 BLADE_ATTACK_SOUNDS = ('blade.swing', 'blade.strike', 'blade.sweep', 'blade.crit')
+GUN_SOUNDS = ('gun.fire', 'gun.fire_short', 'gun.fire_scatter', 'gun.misfire')
 
 
 def blade_sounds(archive, wanted=BLADE_SOUNDS):
@@ -39,28 +40,51 @@ def blade_sounds(archive, wanted=BLADE_SOUNDS):
 BLADE_SCREEN_CHARS = {'blade_slash': '\ue000', 'blade_drain': '\ue001'}
 
 
+GUN_SCREEN_CHARS = {'gun_flash': '\ue010', 'gun_scope': '\ue011', 'gun_ember': '\ue012', 'gun_smoke': '\ue013'}
+
+
 def blade_screens(archive):
+    """刀の画面の演出（フォントの定義と、それが指す絵がすべて ZIP に入っているか）。"""
+    return screens(archive, 'blade', BLADE_SCREEN_CHARS)
+
+
+def gun_screens(archive):
+    """銃の画面の演出（同じ確かめ方）。"""
+    return screens(archive, 'gun', GUN_SCREEN_CHARS)
+
+
+def screens(archive, name, expected):
     """画面の演出は、フォントの定義と、それが指す絵がすべて ZIP に入っているときだけ、使えるとみなす。"""
-    providers = json.loads(archive.read('assets/hnmt/font/blade.json'))['providers']
+    providers = json.loads(archive.read('assets/hnmt/font/%s.json' % name))['providers']
     seen = {}
     for provider in providers:
         if provider.get('type') != 'bitmap': continue
         name = provider['file'].split(':', 1)[1]
         if archive.getinfo('assets/hnmt/textures/' + name).file_size <= 0: return False
         seen[name] = ''.join(provider['chars'])
-    return all(seen.get('font/' + key + '.png') == char for key, char in BLADE_SCREEN_CHARS.items())
+    return all(seen.get('font/' + key + '.png') == char for key, char in expected.items())
 
 
 def capabilities(data):
-    """Only advertise interaction support when its actual assets are in the ZIP."""
+    """ZIP に実際の素材が入っているときだけ、その機能の目印を載せる。目印ごとに、別々に確かめる（1つが欠けても、ほかは載せる）。"""
+    checks = [
+        ('blade-sounds-v1', lambda archive: blade_sounds(archive)),
+        ('blade-attack-sounds-v1', lambda archive: blade_sounds(archive, BLADE_SOUNDS + BLADE_ATTACK_SOUNDS)),
+        ('blade-screen-v1', blade_screens),
+        ('gun-sounds-v1', lambda archive: blade_sounds(archive, GUN_SOUNDS)),
+        ('gun-screen-v1', gun_screens),
+    ]
     found = []
     try:
-        with zipfile.ZipFile(io.BytesIO(data)) as archive:
-            if blade_sounds(archive): found.append('blade-sounds-v1')
-            if blade_sounds(archive, BLADE_SOUNDS + BLADE_ATTACK_SOUNDS): found.append('blade-attack-sounds-v1')
-            if blade_screens(archive): found.append('blade-screen-v1')
-    except (zipfile.BadZipFile, KeyError, ValueError, TypeError, AttributeError):
-        pass
+        archive = zipfile.ZipFile(io.BytesIO(data))
+    except zipfile.BadZipFile:
+        return rice_capabilities(data)
+    with archive:
+        for name, check in checks:
+            try:
+                if check(archive): found.append(name)
+            except (KeyError, ValueError, TypeError, AttributeError):
+                pass
     return found + rice_capabilities(data)
 
 

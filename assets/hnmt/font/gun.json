@@ -1,0 +1,40 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "hnmt:font/gun_flash.png",
+      "ascent": 78,
+      "height": 144,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "hnmt:font/gun_scope.png",
+      "ascent": 78,
+      "height": 144,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "hnmt:font/gun_ember.png",
+      "ascent": 78,
+      "height": 144,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "hnmt:font/gun_smoke.png",
+      "ascent": 78,
+      "height": 144,
+      "chars": [
+        ""
+      ]
+    }
+  ]
+}
