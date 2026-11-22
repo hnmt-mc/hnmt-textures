@@ -159,9 +159,16 @@ def first_person(grip, scale, yaw, side):
     return {'rotation': [0, yaw * side, 0], 'translation': translation, 'scale': [scale] * 3}
 
 
+def sword_hand_third_person():
+    """バニラの剣の柄が、三人称で、手のどこに来るか（handheld の [0,-90,55]・[0,4,0.5]・0.85 から計算。display の座標）。"""
+    g = apply(rot(0, -90, 55), (-6, -6, 0))
+    return [(0, 4.0, 0.5)[i] + 0.85 * g[i] for i in range(3)]
+
+
 def third_person(grip, scale):
-    """三人称。手の座標では、腕の先が +y なので、銃身を腕の向きに合わせ（回転なし）、握りが手に来るように、後ろへ下げる。"""
-    return {'rotation': [0, 0, 0], 'translation': [0, round((grip[2] - 8) * scale, 2), round(-0.5 - (grip[1] - 8) * scale * 0.5, 2)], 'scale': [scale] * 3}
+    """三人称。銃身は、display の座標の北（-z）、つまり、クロスボウと同じ前向きにし（回転なし）、握りが、剣の柄と同じ手の位置に来るように動かす。"""
+    hand = sword_hand_third_person()
+    return {'rotation': [0, 0, 0], 'translation': [round(hand[i] - scale * (grip[i] - 8), 2) for i in range(3)], 'scale': [scale] * 3}
 
 
 def display(grip, scale, hidden=False):
