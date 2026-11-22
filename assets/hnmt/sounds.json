@@ -1,0 +1,7 @@
+{
+  "blade.draw": {"sounds": [{"name": "hnmt:blade/draw", "volume": 0.9}]},
+  "blade.sheath": {"sounds": [{"name": "hnmt:blade/sheath", "volume": 0.9}]},
+  "blade.iai": {"sounds": [{"name": "hnmt:blade/iai1", "volume": 1.0}, {"name": "hnmt:blade/iai2", "volume": 1.0}]},
+  "blade.dash": {"sounds": [{"name": "hnmt:blade/dash", "volume": 0.9}]},
+  "blade.youtou": {"sounds": [{"name": "hnmt:blade/youtou", "volume": 0.8}]}
+}

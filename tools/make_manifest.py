@@ -20,8 +20,33 @@ ASSET = "hnmt-textures.zip"
 ROOT = Path(__file__).resolve().parents[1]
 
 
+BLADE_SOUNDS = ('blade.draw', 'blade.sheath', 'blade.iai', 'blade.dash', 'blade.youtou')
+
+
+def blade_sounds(archive):
+    """刀の音は、音の定義と、定義が指す ogg がすべて ZIP に入っているときだけ、使えるとみなす。"""
+    events = json.loads(archive.read('assets/hnmt/sounds.json'))
+    for event in BLADE_SOUNDS:
+        entries = events[event]['sounds']
+        if not entries: return False
+        for entry in entries:
+            name = entry['name'].split(':', 1)[1]
+            if archive.getinfo('assets/hnmt/sounds/' + name + '.ogg').file_size <= 0: return False
+    return True
+
+
 def capabilities(data):
     """Only advertise interaction support when its actual assets are in the ZIP."""
+    found = []
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            if blade_sounds(archive): found.append('blade-sounds-v1')
+    except (zipfile.BadZipFile, KeyError, ValueError, TypeError, AttributeError):
+        pass
+    return found + rice_capabilities(data)
+
+
+def rice_capabilities(data):
     try:
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             names = ('assets/minecraft/blockstates/sculk_vein.json', 'assets/hnmt/models/block/rice_hitbox.json')
