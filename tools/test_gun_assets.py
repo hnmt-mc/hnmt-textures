@@ -14,7 +14,7 @@ def packed(drop=None, empty=None):
     out = io.BytesIO()
     with zipfile.ZipFile(out, 'w') as z:
         files = [ROOT / 'assets/hnmt/sounds.json', ROOT / 'assets/hnmt/font/gun.json',
-                 *sorted((ROOT / 'assets/hnmt/textures/font').glob('gun_*.png')), *sorted((ROOT / 'assets/hnmt/sounds/gun').glob('*.ogg'))]
+                 *sorted((ROOT / 'assets/hnmt/textures/font').glob('gun_*.png')), ROOT / 'assets/hnmt/textures/misc/gun_scope.png', *sorted((ROOT / 'assets/hnmt/sounds/gun').glob('*.ogg'))]
         for path in files:
             name = str(path.relative_to(ROOT))
             if name == drop: continue
@@ -71,6 +71,20 @@ class GunAssetTests(unittest.TestCase):
         self.assertTrue(scope.getpixel((256 + 20, 128))[3] > 200, '照準: 十字線がある')
         opaque = sum(1 for p in scope.getdata() if p[3] > 0)
         self.assertLess(opaque / (512 * 256), 0.08, '照準が覆う面積は、画面の8%より小さい')
+
+    def test_the_scope_view_covers_the_edges_and_opens_a_circular_lens(self):
+        from PIL import Image
+        view = Image.open(ROOT / 'assets/hnmt/textures/misc/gun_scope.png')
+        self.assertEqual((view.size, view.mode), ((1024, 576), 'RGBA'))
+        for corner in ((2, 2), (1021, 2), (2, 573), (1021, 573)):
+            self.assertEqual(view.getpixel(corner)[3], 255, '四隅は、黒')
+        self.assertEqual(view.getpixel((512 + 100, 288 + 60))[3], 0, '円の中は、透明')
+        self.assertEqual(view.getpixel((512, 288))[:3], (230, 40, 40), '中央は、赤い点')
+
+    def test_the_scope_view_capability_needs_the_picture(self):
+        self.assertIn('gun-scope-v1', make_manifest.manifest('v0.11.2', packed())['capabilities'])
+        self.assertNotIn('gun-scope-v1', make_manifest.manifest('v0.11.2', packed(drop='assets/hnmt/textures/misc/gun_scope.png'))['capabilities'])
+        self.assertNotIn('gun-scope-v1', make_manifest.manifest('v0.11.2', packed(empty='assets/hnmt/textures/misc/gun_scope.png'))['capabilities'])
 
     def test_a_loaded_gun_switches_to_the_aim_pose_while_use_is_held(self):
         for gun in ('matchlock', 'tanzutsu'):

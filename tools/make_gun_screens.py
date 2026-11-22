@@ -56,6 +56,42 @@ def scope():
     return image
 
 
+SCOPE_W, SCOPE_H = 1024, 576      # 16:9。画面いっぱいに引き伸ばされる（カボチャのかぶり物と同じ）
+
+
+def scope_view():
+    """スコープを覗いた画面。円の外は黒、円の中は透明。円の中に、太い黒の線が縁から中央へ細くなる十字線と、目盛りの点。
+    サーバーが、頭の防具を一時的に、この絵のかぶり物（equippable の camera_overlay）に見せかけて、画面いっぱいに出す。"""
+    image = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 255))
+    cx, cy = SCOPE_W / 2, SCOPE_H / 2
+    radius = SCOPE_H * 0.47
+    px = image.load()
+    for y in range(SCOPE_H):
+        for x in range(SCOPE_W):
+            d = math.hypot(x + 0.5 - cx, y + 0.5 - cy)
+            if d <= radius - 5: px[x, y] = (0, 0, 0, 0)
+            elif d <= radius: px[x, y] = (0, 0, 0, int(255 * (d - (radius - 5)) / 5))    # レンズの縁（なめらかに黒へ）
+    ring = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(ring)
+    r = radius - 4
+    # 十字線: 縁は太く、中央へ細くなる（先細りの帯）。中央は、あけて、赤い点
+    for sign in (-1, 1):
+        for step in range(int(r - 26)):
+            t = step / (r - 26)
+            width = 1 + 6 * (1 - t) ** 2                     # 中央側が細く、縁側が太い
+            x = cx + sign * (26 + (r - 26) * (1 - t))
+            draw.rectangle((x - 0.5, cy - width / 2, x + 0.5, cy + width / 2), fill=(0, 0, 0, 255))
+            y = cy + sign * (26 + (r - 26) * (1 - t))
+            draw.rectangle((cx - width / 2, y - 0.5, cx + width / 2, y + 0.5), fill=(0, 0, 0, 255))
+    for k in (1, 2, 3, 4):                                    # 目盛りの点
+        for sign in (-1, 1):
+            for dx, dy in ((k * 42 * sign, 0), (0, k * 42 * sign)):
+                draw.ellipse((cx + dx - 3, cy + dy - 3, cx + dx + 3, cy + dy + 3), fill=(0, 0, 0, 255))
+    draw.ellipse((cx - 3, cy - 3, cx + 3, cy + 3), fill=(230, 40, 40, 255))
+    image.alpha_composite(ring)
+    return image
+
+
 def ember():
     """火縄の種火の光。画面の下の中央から、橙の光が上へ薄れる。"""
     def f(dx, dy):
@@ -85,6 +121,9 @@ def build():
     target = PACK / 'assets/hnmt/textures/font'
     target.mkdir(parents=True, exist_ok=True)
     for name, make in IMAGES.items(): make().save(target / (name + '.png'))
+    misc = PACK / 'assets/hnmt/textures/misc'
+    misc.mkdir(parents=True, exist_ok=True)
+    scope_view().save(misc / 'gun_scope.png')
     path = PACK / 'assets/hnmt/font/gun.json'
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(font(), ensure_ascii=False, indent=2) + '\n')
@@ -98,6 +137,7 @@ def preview():
     for i, name in enumerate(IMAGES):
         sheet.alpha_composite(IMAGES[name](), (8 + (i % 2) * (W + 8), 8 + (i // 2) * (H + 8)))
     sheet.save(out / 'screens.png')
+    scope_view().resize((SCOPE_W // 2, SCOPE_H // 2)).save(out / 'scope_view.png')
     print('Preview: ' + str(out / 'screens.png'))
 
 
