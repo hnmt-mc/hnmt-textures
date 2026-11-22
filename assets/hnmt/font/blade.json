@@ -1,0 +1,22 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "hnmt:font/blade_slash.png",
+      "ascent": 78,
+      "height": 144,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "hnmt:font/blade_drain.png",
+      "ascent": 78,
+      "height": 144,
+      "chars": [
+        ""
+      ]
+    }
+  ]
+}

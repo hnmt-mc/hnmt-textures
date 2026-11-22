@@ -13,7 +13,7 @@ EVENTS = make_manifest.BLADE_SOUNDS + make_manifest.BLADE_ATTACK_SOUNDS
 def packed(drop=None, empty=None):
     out = io.BytesIO()
     with zipfile.ZipFile(out, 'w') as z:
-        for path in [ROOT / 'assets/hnmt/sounds.json', *sorted((ROOT / 'assets/hnmt/sounds/blade').glob('*.ogg'))]:
+        for path in [ROOT / 'assets/hnmt/sounds.json', ROOT / 'assets/hnmt/font/blade.json', *sorted((ROOT / 'assets/hnmt/textures/font').glob('blade_*.png')), *sorted((ROOT / 'assets/hnmt/sounds/blade').glob('*.ogg'))]:
             name = str(path.relative_to(ROOT))
             if name == drop: continue
             z.writestr(name, b'' if name == empty else path.read_bytes())
@@ -47,6 +47,26 @@ class BladeSoundTests(unittest.TestCase):
         broken = make_manifest.manifest('v0.9.1', packed(drop='assets/hnmt/sounds/blade/crit1.ogg'))['capabilities']
         self.assertIn('blade-sounds-v1', broken, '古い5つの音は、そのまま使える')
         self.assertNotIn('blade-attack-sounds-v1', broken)
+
+
+    def test_the_screen_capability_needs_the_font_and_both_images(self):
+        self.assertIn('blade-screen-v1', make_manifest.manifest('v0.10.0', packed())['capabilities'])
+        for missing in ('assets/hnmt/font/blade.json', 'assets/hnmt/textures/font/blade_slash.png', 'assets/hnmt/textures/font/blade_drain.png'):
+            self.assertNotIn('blade-screen-v1', make_manifest.manifest('v0.10.0', packed(drop=missing))['capabilities'], missing)
+        self.assertNotIn('blade-screen-v1', make_manifest.manifest('v0.10.0', packed(empty='assets/hnmt/textures/font/blade_drain.png'))['capabilities'])
+
+    def test_the_font_maps_the_characters_the_server_sends(self):
+        providers = json.loads((ROOT / 'assets/hnmt/font/blade.json').read_text())['providers']
+        self.assertEqual({p['file']: p['chars'] for p in providers}, {'hnmt:font/blade_slash.png': ['\ue000'], 'hnmt:font/blade_drain.png': ['\ue001']})
+        for p in providers: self.assertLessEqual(p['ascent'], p['height'])
+
+    def test_the_screen_images_are_transparent_and_the_size_the_font_expects(self):
+        from PIL import Image
+        for name in ('blade_slash', 'blade_drain'):
+            image = Image.open(ROOT / 'assets/hnmt/textures/font' / (name + '.png'))
+            self.assertEqual(image.size, (512, 256))
+            self.assertEqual(image.mode, 'RGBA')
+            self.assertEqual(image.getpixel((256, 128))[3] == 0 or name == 'blade_slash', True, '吸血の絵は、中央が透明')
 
 
 if __name__ == '__main__':
