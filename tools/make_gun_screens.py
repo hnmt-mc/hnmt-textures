@@ -60,54 +60,61 @@ SCOPE_W, SCOPE_H = 1024, 576      # 16:9。画面いっぱいに引き伸ばさ�
 
 
 def scope_view():
-    """スコープを覗いた画面。画面の中央に、スコープの筒の厚い黒い縁（円環）があり、中は透明なレンズ（細い十字線つき）。
-    縁の下には、スコープを載せた銃の本体の影が、画面の下へ伸びる。縁の外も、透明（景色が見える）。
-    サーバーが、頭の防具を一時的に、この絵のかぶり物（equippable の camera_overlay）に見せかけて、画面いっぱいに出す（16:9 に引き伸ばされる）。"""
+    """火縄銃の狙い方: 銃身の上の、小さな突起（照星と照門）を一直線にそろえて狙う。後ろから銃身を見た絵。
+    下に、照門（手前の板。真ん中が U 字に切れている）、中央の先に、照星（銃口の小さな突起）があり、U 字の切れ込みの真ん中に、照星が来る。
+    銃身は、手前から奥へ、細くなる。縁の外は、透明（景色が見える）。サーバーが、頭の防具を一時的に、この絵のかぶり物
+    （equippable の camera_overlay）に見せかけて、画面いっぱいに出す（16:9 に引き伸ばされる）。"""
     image = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 0))
-    cx, cy = SCOPE_W / 2, SCOPE_H * 0.43
-    inner, outer = SCOPE_H * 0.27, SCOPE_H * 0.35
+    draw = ImageDraw.Draw(image)
+    cx = SCOPE_W / 2
+    apex_y, near_y = 300, SCOPE_H
+    apex_w, near_w = 16, 380
+    def half_at(y): return (apex_w + (near_w - apex_w) * ((y - apex_y) / (near_y - apex_y)) ** 1.35) / 2
     px = image.load()
-    # 銃の本体: 筒の下から、画面の下へ向かって、少し広がる暗い青灰色の影。左右の端は、金属のハイライト
-    top_y = cy + outer - 12
-    for y in range(int(top_y), SCOPE_H):
-        f = (y - top_y) / (SCOPE_H - top_y)
-        half = 62 + 58 * f
+    # 銃身: 上面は、八角の面（中央が明るく、左右へ暗くなる）。奥へ向かって、細くなる
+    for y in range(apex_y, near_y):
+        half = half_at(y)
+        depth = (y - apex_y) / (near_y - apex_y)
         for x in range(int(cx - half), int(cx + half) + 1):
             u = (x - cx) / half
-            shade = 1.0 - 0.55 * abs(u) ** 2
-            base = (34, 40, 58)
-            lit = tuple(int(c * (0.55 + 0.8 * max(0.0, -u * 0.6 + 0.35))) for c in base)
-            px[x, y] = (min(255, int(lit[0] * shade)), min(255, int(lit[1] * shade)), min(255, int(lit[2] * shade)), 255)
-    # 筒の縁（円環）。外側は、ややぼかす
-    for y in range(SCOPE_H):
-        for x in range(SCOPE_W):
-            d = math.hypot(x + 0.5 - cx, y + 0.5 - cy)
-            if inner - 6 <= d <= outer + 4:
-                if d < inner: a = int(255 * (d - (inner - 6)) / 6)             # レンズの内側の縁（なめらかに黒へ）
-                elif d <= outer: a = 255
-                else: a = int(255 * (1 - (d - outer) / 4))                       # 外側の縁
-                shade = 18 + int(26 * max(0.0, 1 - abs((d - (inner + outer) / 2)) / ((outer - inner) / 2)) ** 3 * (0.5 + 0.5 * math.cos(math.atan2(y - cy, x - cx) + 2.3)))
-                r, g, b, old = px[x, y]
-                px[x, y] = (shade, shade, shade + 4, max(a, old))
-    layer = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(layer)
-    r = inner - 4
-    # 十字線: 細い線を、レンズいっぱいに。中央は、少しあける。小さな目盛り
-    for sign in (-1, 1):
-        draw.line((cx + sign * 14, cy, cx + sign * r, cy), fill=(10, 10, 12, 235), width=2)
-        draw.line((cx, cy + sign * 14, cx, cy + sign * r), fill=(10, 10, 12, 235), width=2)
-        for k in (1, 2, 3):
-            draw.line((cx + sign * k * 34, cy - 4, cx + sign * k * 34, cy + 4), fill=(10, 10, 12, 235), width=2)
-            draw.line((cx - 4, cy + sign * k * 34, cx + 4, cy + sign * k * 34), fill=(10, 10, 12, 235), width=2)
-    draw.ellipse((cx - 3, cy - 3, cx + 3, cy + 3), fill=(230, 40, 40, 255))
-    # レンズの内側を、ほんの少し暗く（筒の中を覗いている感じ）
-    for y in range(SCOPE_H):
-        for x in range(SCOPE_W):
-            d = math.hypot(x + 0.5 - cx, y + 0.5 - cy)
-            if d < inner - 6:
-                a = int(70 * max(0.0, (d / (inner - 6) - 0.55) / 0.45) ** 2)
-                if a: layer.putpixel((x, y), (0, 0, 0, a)) if layer.getpixel((x, y))[3] == 0 else None
-    image.alpha_composite(layer)
+            facet = 0.0 if abs(u) < 0.33 else 1.0 if abs(u) < 0.72 else 2.0     # 3つの面
+            base = (146, 158, 178) if facet == 0 else (96, 108, 128) if facet == 1 else (52, 60, 76)
+            haze = 0.55 + 0.45 * depth                                          # 奥ほど、少し霞む
+            px[x, y] = (int(base[0] * haze), int(base[1] * haze), int(base[2] * haze), 255)
+    for u in (-0.33, 0.33, -0.72, 0.72):                                        # 面の境目の細い線
+        points = [(cx + half_at(y) * u, y) for y in range(apex_y, near_y, 4)]
+        draw.line(points, fill=(24, 28, 38, 200), width=2)
+    for y0, thick in ((350, 4), (420, 6), (520, 9)):                            # 真鍮の帯（竹の節のように巻く）
+        half = half_at(y0) + 2
+        draw.rectangle((cx - half, y0, cx + half, y0 + thick), fill=(201, 160, 60, 255))
+        draw.line((cx - half, y0, cx + half, y0), fill=(240, 210, 122, 255), width=1)
+    # 照星: 銃口の、小さな突起（台と、先の玉）
+    draw.rectangle((cx - 9, apex_y - 12, cx + 9, apex_y + 2), fill=(201, 160, 60, 255))                 # 台
+    draw.rectangle((cx - 3, apex_y - 34, cx + 3, apex_y - 10), fill=(28, 32, 42, 255))                  # 柱
+    draw.ellipse((cx - 6, apex_y - 44, cx + 6, apex_y - 32), fill=(240, 210, 122, 255), outline=(40, 30, 10, 255))   # 先の玉
+    # 照門: 手前の板。真ん中が U 字に切れて、そこから照星と銃身が見える
+    top, notch_w, notch_bottom = 480, 56, 536
+    gate = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 0))
+    g = ImageDraw.Draw(gate)
+    g.rectangle((cx - 230, top, cx + 230, SCOPE_H), fill=(26, 30, 38, 255))
+    g.rectangle((cx - 230, top, cx + 230, top + 5), fill=(88, 98, 118, 255))                           # 上の縁のハイライト
+    g.rectangle((cx - 230, top + 5, cx - 226, SCOPE_H), fill=(60, 68, 84, 255))
+    g.rectangle((cx + 226, top + 5, cx + 230, SCOPE_H), fill=(12, 14, 18, 255))
+    for x in range(int(cx - 230), int(cx + 231), 14):                                                  # 側面の削り跡
+        g.line((x, top + 14, x, SCOPE_H), fill=(32, 36, 46, 255), width=1)
+    notch = Image.new('L', (SCOPE_W, SCOPE_H), 0)
+    n = ImageDraw.Draw(notch)
+    n.rectangle((cx - notch_w / 2, top - 2, cx + notch_w / 2, notch_bottom - notch_w / 2), fill=255)
+    n.ellipse((cx - notch_w / 2, notch_bottom - notch_w, cx + notch_w / 2, notch_bottom), fill=255)       # U 字の底
+    a = gate.split()[3]
+    a.paste(0, mask=notch)                                                                              # U 字の切れ込みを、透明に抜く
+    gate.putalpha(a)
+    # 切れ込みの縁の、細い明るい線
+    ring = ImageDraw.Draw(gate)
+    ring.line((cx - notch_w / 2, top, cx - notch_w / 2, notch_bottom - notch_w / 2), fill=(120, 132, 154, 255), width=2)
+    ring.line((cx + notch_w / 2, top, cx + notch_w / 2, notch_bottom - notch_w / 2), fill=(70, 78, 96, 255), width=2)
+    ring.arc((cx - notch_w / 2, notch_bottom - notch_w, cx + notch_w / 2, notch_bottom), 0, 180, fill=(120, 132, 154, 255), width=2)
+    image.alpha_composite(gate)
     return image
 
 

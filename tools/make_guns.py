@@ -20,15 +20,8 @@ SIZE = 64
 GUNS = [('matchlock', 'gun'), ('matchlock_loaded', 'gun'), ('tanzutsu', 'gun'), ('tanzutsu_loaded', 'gun'),
         ('ammo_teppo', 'generated'), ('ammo_shoidan', 'generated'), ('ammo_sandan', 'generated')]
 
-# 銃の構え（モデルの display）。一人称は、絵の中の銃身の向きが、画面の奥（前）へ向き、側面が見えるように回し、
-# 柄（火縄の仕掛けのあたり）が、バニラの剣の柄と同じ手の位置に来るように動かす（計算で求めた値。実機で、見え方を確かめて直す）。
-# 左手は、右手の左右反転（回転の y・z の符号を反転）。三人称は、バニラのクロスボウと同じ構え。
-GUN_DISPLAY = {
-    'firstperson_righthand': {'rotation': [-95, 50, -95], 'translation': [2.6, 0.0, -8.0], 'scale': [0.8, 0.8, 0.8]},
-    'firstperson_lefthand': {'rotation': [-95, -50, 95], 'translation': [2.6, 0.0, -8.0], 'scale': [0.8, 0.8, 0.8]},
-    'thirdperson_righthand': {'rotation': [-90, 0, -60], 'translation': [2, 0.1, -3], 'scale': [0.9, 0.9, 0.9]},
-    'thirdperson_lefthand': {'rotation': [-90, 0, 30], 'translation': [2, 0.1, -3], 'scale': [0.9, 0.9, 0.9]},
-}
+# 銃の手持ちの見た目は、3Dモデル（tools/make_gun_models.py）。持ち物の欄・落とした物・額縁では、この平らなアイコンを使う。
+GUN_FLAT_CONTEXTS = ["gui", "ground", "fixed"]
 
 STEEL = ('#2f3644', '#566072', '#8f9cb0')        # 黒ずんだ銃身（暗・中・ハイライト）
 WOOD = ('#4a2c18', '#7a4a26', '#a8703c')         # 銃床（暗・中・明）
@@ -211,15 +204,22 @@ def draw(name):
     raise ValueError('Unknown gun item: ' + name)
 
 
-# スコープを覗く構えの display。
-# 覗いているあいだ、手に持った銃の絵は、見えなくする（スコープの画面に、銃身が映り込まないように。ごく小さくして隠す）。
-AIM_DISPLAY = dict(GUN_DISPLAY, firstperson_righthand={'rotation': [-95, 50, -95], 'translation': [0.0, -8.0, -8.0], 'scale': [0.001, 0.001, 0.001]},
-                   firstperson_lefthand={'rotation': [-95, -50, 95], 'translation': [0.0, -8.0, -8.0], 'scale': [0.001, 0.001, 0.001]})
-
-
 def write_json(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+
+
+def item_definition(name, holding):
+    """items の定義。銃は、display_context で、平らなアイコンと3Dモデルを切り替える。装填済みの銃は、右クリックを押している間（狙っている間）、
+    手に持った銃を隠すモデルへ、クライアント側で切り替える（minecraft:keybind_down）。"""
+    if holding != 'gun': return {'model': {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name}}
+    held = {'type': 'minecraft:select', 'property': 'minecraft:display_context',
+            'cases': [{'when': GUN_FLAT_CONTEXTS, 'model': {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name + '_icon'}}],
+            'fallback': {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name}}
+    if name.endswith('_loaded'):
+        held = {'type': 'minecraft:condition', 'property': 'minecraft:keybind_down', 'keybind': 'key.use',
+                'on_true': {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name.replace('_loaded', '_aim')}, 'on_false': held}
+    return {'model': held}
 
 
 def build():
@@ -227,18 +227,11 @@ def build():
         path = PACK / 'assets/hnmt/textures/item/gun' / (name + '.png')
         path.parent.mkdir(parents=True, exist_ok=True)
         draw(name).save(path)
-        model_ref = {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name}
-        if name.endswith('_loaded'):
-            # 装填済み: 右クリックを押しているあいだ（スコープ）は、構えの絵（銃が中央へ寄る）。クライアント側で切り替わる
-            model_ref = {'type': 'minecraft:condition', 'property': 'minecraft:keybind_down', 'keybind': 'key.use',
-                         'on_true': {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name.replace('_loaded', '_aim')}, 'on_false': model_ref}
-        write_json(PACK / 'assets/hnmt/items/gun' / (name + '.json'), {'model': model_ref})
-        if name.endswith('_loaded'):
-            write_json(PACK / 'assets/hnmt/models/item/gun' / (name.replace('_loaded', '_aim') + '.json'),
-                       {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'hnmt:item/gun/' + name}, 'display': AIM_DISPLAY})
-        model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'hnmt:item/gun/' + name}}
-        if holding == 'gun': model['display'] = GUN_DISPLAY
-        write_json(PACK / 'assets/hnmt/models/item/gun' / (name + '.json'), model)
+        write_json(PACK / 'assets/hnmt/items/gun' / (name + '.json'), item_definition(name, holding))
+        flat = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'hnmt:item/gun/' + name}}
+        write_json(PACK / 'assets/hnmt/models/item/gun' / (name + ('_icon' if holding == 'gun' else '') + '.json'), flat)
+    import make_gun_models
+    make_gun_models.build()
     print('Wrote %d gun icons' % len(GUNS))
 
 

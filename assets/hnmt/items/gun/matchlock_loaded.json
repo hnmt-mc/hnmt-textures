@@ -8,8 +8,25 @@
       "model": "hnmt:item/gun/matchlock_aim"
     },
     "on_false": {
-      "type": "minecraft:model",
-      "model": "hnmt:item/gun/matchlock_loaded"
+      "type": "minecraft:select",
+      "property": "minecraft:display_context",
+      "cases": [
+        {
+          "when": [
+            "gui",
+            "ground",
+            "fixed"
+          ],
+          "model": {
+            "type": "minecraft:model",
+            "model": "hnmt:item/gun/matchlock_loaded_icon"
+          }
+        }
+      ],
+      "fallback": {
+        "type": "minecraft:model",
+        "model": "hnmt:item/gun/matchlock_loaded"
+      }
     }
   }
 }

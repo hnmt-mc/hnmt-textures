@@ -168,9 +168,17 @@ python3 tools/make_wafu_food.py --preview  # 絵を拡大して並べる（build
 
 音は、Ben Jaszczak・Brian Nelson・Kevin Heras・Matthew Nanney が録音した [The Free Firearm Sound Library](https://opengameart.org/content/the-free-firearm-sound-library)（CC0）の、Arisaka（火縄銃）・Ruger Single Six（短筒）・Mossberg（散弾。不発は、同じ銃の空打ちの音）の録音から切り出し、mono 44.1kHz の ogg にしています。現代の銃の実録音なので、戦国の火縄銃の音そのものではありません。
 
-### 銃の画面の演出
+### 銃の3Dモデル
 
-発射のフラッシュ・スコープの照準・装填中の種火の光・不発の灰色のにじみを、サーバーが、パックの文字として画面に重ねます。絵は `assets/hnmt/textures/font/gun_flash.png`・`gun_scope.png`・`gun_ember.png`・`gun_smoke.png`（512×256、透明）、文字の登録は `assets/hnmt/font/gun.json`（`\uE010`〜`\uE013`）です。`python3 tools/make_gun_screens.py` で作り直せます（`--preview` で見本）。フォントと4枚の絵がすべて入っているときだけ、`capabilities` に `gun-screen-v1` が載ります。Java 版でパックが入っている人だけの演出です。
+火縄銃・短筒（空・装填済み）は、手に持ったとき・身につけたときだけ、箱を組んだ3Dモデル（`assets/hnmt/models/item/gun/<名前>.json`、Blockbench で開けます）で出します。銃身は、モデルの北（-z）へ向け、八角の銃身・真鍮の帯・照星・照門・銃床・込め矢・側板・火皿・蛇杖と火縄を組んでいます。装填済みは、火縄の先が光ります（`light_emission`）。絵は、小さなタイル集 `assets/hnmt/textures/item/gun_model/atlas.png` です。`python3 tools/make_gun_models.py`（`make_guns.py` からも呼ばれます）で作り直せます。構え（display）の位置は、バニラの剣の柄と同じ手の位置に、銃の握りが来るように計算しています。
+
+持ち物の欄・落とした物・額縁では、平らなアイコン（`<名前>_icon.json`）を使います（`items` の定義が、`display_context` で切り替えます）。統合版は、平らなアイコンのままです。装填済みの銃は、右クリックを押している間（狙っている間）、手に持った銃のモデルを隠します（`minecraft:keybind_down`。クライアント側で切り替わります）。
+
+### 銃の狙い方の画面と、画面の演出
+
+狙っている間の画面は、火縄銃の狙い方（銃身の上の、小さな突起の照星と照門を一直線にそろえる）の絵 `assets/hnmt/textures/misc/gun_scope.png`（1024×576、16:9）です。手前の照門の板の U 字の切れ込みの真ん中に、銃口の照星が来て、銃身は手前から奥へ細くなります。縁の外は透明で、景色が見えます。サーバーが、頭の防具の欄に、その人のクライアントにだけ見せかけのかぶり物（equippable の camera_overlay）を送って、画面いっぱいに出します。絵が入っているときだけ、`capabilities` に `gun-scope-v1` が載ります。
+
+発射のフラッシュ（`gun_flash`）・不発の灰色のにじみ（`gun_smoke`）は、フォントの文字（`hnmt:gun` の `\uE010`・`\uE013`）として、一瞬のタイトルで重ねます。絵は `python3 tools/make_gun_screens.py` で作り直せます（`--preview` で見本）。フォントと4枚の絵がすべて入っているときだけ、`capabilities` に `gun-screen-v1` が載ります。Java 版でパックが入っている人だけの演出です。
 
 ## 刀の画面の演出
 
