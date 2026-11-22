@@ -76,18 +76,22 @@ class GunAssetTests(unittest.TestCase):
         from PIL import Image
         view = Image.open(ROOT / 'assets/hnmt/textures/misc/gun_scope.png')
         self.assertEqual((view.size, view.mode), ((1024, 576), 'RGBA'))
-        for corner in ((2, 2), (1021, 2), (2, 300), (1021, 300), (200, 560)):
+        for corner in ((2, 2), (1021, 2), (2, 300), (1021, 300), (200, 300), (800, 200)):
             self.assertEqual(view.getpixel(corner)[3], 0, '周りは、透明（景色が見える）')
         self.assertEqual(view.getpixel((512, 200))[3], 0, '照星より上は、透明')
         self.assertEqual(view.getpixel((512, 300 - 22))[3], 255, '照星（柱）が、画面の中央にある')
         self.assertEqual(view.getpixel((512, 560))[3], 255, '照門の U 字の切れ込みの中に、銃身が見える')
         self.assertEqual(view.getpixel((512 - 100, 500))[3], 255, '照門の板がある')
         self.assertEqual(view.getpixel((512 - 100, 560))[3], 255, '照門の板は、下まで続く')
+        self.assertEqual(view.getpixel((512 - 300, 570))[3], 255, '銃床の上面（木）が、手前の左右にある')
+        glow = view.getpixel((512 + 288, 314))
+        self.assertGreater(glow[0] + glow[1], 400, '火縄の先は、明るく燃えている')
+        self.assertGreater(view.getpixel((512 + 300, 540))[3], 200, '右手前に、真鍮の側板がある')
         notch = view.getpixel((512, 490))
         self.assertGreater(notch[0] + notch[1] + notch[2], 250, 'U 字の切れ込みから、明るい銃身の上面が見える（照門の板は、暗い）')
         self.assertLess(sum(view.getpixel((512 - 100, 500))[:3]), 150, '照門の板は、暗い')
         opaque = sum(1 for p in view.getdata() if p[3] > 200)
-        self.assertLess(opaque / (1024 * 576), 0.2, '視界の大半は、覆わない')
+        self.assertLess(opaque / (1024 * 576), 0.30, '視界の大半は、覆わない（上半分は、景色）')
         # 照星は、切れ込みの真ん中（左右の中央）にある
         columns = [x for x in range(1024) if view.getpixel((x, 300 - 22))[3] == 255]
         self.assertAlmostEqual((columns[0] + columns[-1]) / 2, 512, delta=1)
