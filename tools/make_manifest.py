@@ -65,6 +65,11 @@ def screens(archive, name, expected):
     return all(seen.get('font/' + key + '.png') == char for key, char in expected.items())
 
 
+def gun_scope_view(archive):
+    """スコープを覗いた画面の絵（textures/misc/gun_scope.png）が入っているか。"""
+    return archive.getinfo('assets/hnmt/textures/misc/gun_scope.png').file_size > 0
+
+
 def capabilities(data):
     """ZIP に実際の素材が入っているときだけ、その機能の目印を載せる。目印ごとに、別々に確かめる（1つが欠けても、ほかは載せる）。"""
     checks = [
@@ -73,6 +78,7 @@ def capabilities(data):
         ('blade-screen-v1', blade_screens),
         ('gun-sounds-v1', lambda archive: blade_sounds(archive, GUN_SOUNDS)),
         ('gun-screen-v1', gun_screens),
+        ('gun-scope-v1', gun_scope_view),
     ]
     found = []
     try:

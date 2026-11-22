@@ -56,6 +56,61 @@ def scope():
     return image
 
 
+SCOPE_W, SCOPE_H = 1024, 576      # 16:9。画面いっぱいに引き伸ばされる（カボチャのかぶり物と同じ）
+
+
+def scope_view():
+    """スコープを覗いた画面。画面の中央に、スコープの筒の厚い黒い縁（円環）があり、中は透明なレンズ（細い十字線つき）。
+    縁の下には、スコープを載せた銃の本体の影が、画面の下へ伸びる。縁の外も、透明（景色が見える）。
+    サーバーが、頭の防具を一時的に、この絵のかぶり物（equippable の camera_overlay）に見せかけて、画面いっぱいに出す（16:9 に引き伸ばされる）。"""
+    image = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 0))
+    cx, cy = SCOPE_W / 2, SCOPE_H * 0.43
+    inner, outer = SCOPE_H * 0.27, SCOPE_H * 0.35
+    px = image.load()
+    # 銃の本体: 筒の下から、画面の下へ向かって、少し広がる暗い青灰色の影。左右の端は、金属のハイライト
+    top_y = cy + outer - 12
+    for y in range(int(top_y), SCOPE_H):
+        f = (y - top_y) / (SCOPE_H - top_y)
+        half = 62 + 58 * f
+        for x in range(int(cx - half), int(cx + half) + 1):
+            u = (x - cx) / half
+            shade = 1.0 - 0.55 * abs(u) ** 2
+            base = (34, 40, 58)
+            lit = tuple(int(c * (0.55 + 0.8 * max(0.0, -u * 0.6 + 0.35))) for c in base)
+            px[x, y] = (min(255, int(lit[0] * shade)), min(255, int(lit[1] * shade)), min(255, int(lit[2] * shade)), 255)
+    # 筒の縁（円環）。外側は、ややぼかす
+    for y in range(SCOPE_H):
+        for x in range(SCOPE_W):
+            d = math.hypot(x + 0.5 - cx, y + 0.5 - cy)
+            if inner - 6 <= d <= outer + 4:
+                if d < inner: a = int(255 * (d - (inner - 6)) / 6)             # レンズの内側の縁（なめらかに黒へ）
+                elif d <= outer: a = 255
+                else: a = int(255 * (1 - (d - outer) / 4))                       # 外側の縁
+                shade = 18 + int(26 * max(0.0, 1 - abs((d - (inner + outer) / 2)) / ((outer - inner) / 2)) ** 3 * (0.5 + 0.5 * math.cos(math.atan2(y - cy, x - cx) + 2.3)))
+                r, g, b, old = px[x, y]
+                px[x, y] = (shade, shade, shade + 4, max(a, old))
+    layer = Image.new('RGBA', (SCOPE_W, SCOPE_H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    r = inner - 4
+    # 十字線: 細い線を、レンズいっぱいに。中央は、少しあける。小さな目盛り
+    for sign in (-1, 1):
+        draw.line((cx + sign * 14, cy, cx + sign * r, cy), fill=(10, 10, 12, 235), width=2)
+        draw.line((cx, cy + sign * 14, cx, cy + sign * r), fill=(10, 10, 12, 235), width=2)
+        for k in (1, 2, 3):
+            draw.line((cx + sign * k * 34, cy - 4, cx + sign * k * 34, cy + 4), fill=(10, 10, 12, 235), width=2)
+            draw.line((cx - 4, cy + sign * k * 34, cx + 4, cy + sign * k * 34), fill=(10, 10, 12, 235), width=2)
+    draw.ellipse((cx - 3, cy - 3, cx + 3, cy + 3), fill=(230, 40, 40, 255))
+    # レンズの内側を、ほんの少し暗く（筒の中を覗いている感じ）
+    for y in range(SCOPE_H):
+        for x in range(SCOPE_W):
+            d = math.hypot(x + 0.5 - cx, y + 0.5 - cy)
+            if d < inner - 6:
+                a = int(70 * max(0.0, (d / (inner - 6) - 0.55) / 0.45) ** 2)
+                if a: layer.putpixel((x, y), (0, 0, 0, a)) if layer.getpixel((x, y))[3] == 0 else None
+    image.alpha_composite(layer)
+    return image
+
+
 def ember():
     """火縄の種火の光。画面の下の中央から、橙の光が上へ薄れる。"""
     def f(dx, dy):
@@ -85,6 +140,9 @@ def build():
     target = PACK / 'assets/hnmt/textures/font'
     target.mkdir(parents=True, exist_ok=True)
     for name, make in IMAGES.items(): make().save(target / (name + '.png'))
+    misc = PACK / 'assets/hnmt/textures/misc'
+    misc.mkdir(parents=True, exist_ok=True)
+    scope_view().save(misc / 'gun_scope.png')
     path = PACK / 'assets/hnmt/font/gun.json'
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(font(), ensure_ascii=False, indent=2) + '\n')
@@ -98,6 +156,7 @@ def preview():
     for i, name in enumerate(IMAGES):
         sheet.alpha_composite(IMAGES[name](), (8 + (i % 2) * (W + 8), 8 + (i // 2) * (H + 8)))
     sheet.save(out / 'screens.png')
+    scope_view().resize((SCOPE_W // 2, SCOPE_H // 2)).save(out / 'scope_view.png')
     print('Preview: ' + str(out / 'screens.png'))
 
 

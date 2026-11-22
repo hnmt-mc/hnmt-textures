@@ -14,7 +14,7 @@ def packed(drop=None, empty=None):
     out = io.BytesIO()
     with zipfile.ZipFile(out, 'w') as z:
         files = [ROOT / 'assets/hnmt/sounds.json', ROOT / 'assets/hnmt/font/gun.json',
-                 *sorted((ROOT / 'assets/hnmt/textures/font').glob('gun_*.png')), *sorted((ROOT / 'assets/hnmt/sounds/gun').glob('*.ogg'))]
+                 *sorted((ROOT / 'assets/hnmt/textures/font').glob('gun_*.png')), ROOT / 'assets/hnmt/textures/misc/gun_scope.png', *sorted((ROOT / 'assets/hnmt/sounds/gun').glob('*.ogg'))]
         for path in files:
             name = str(path.relative_to(ROOT))
             if name == drop: continue
@@ -71,6 +71,25 @@ class GunAssetTests(unittest.TestCase):
         self.assertTrue(scope.getpixel((256 + 20, 128))[3] > 200, '照準: 十字線がある')
         opaque = sum(1 for p in scope.getdata() if p[3] > 0)
         self.assertLess(opaque / (512 * 256), 0.08, '照準が覆う面積は、画面の8%より小さい')
+
+    def test_the_scope_view_is_a_ring_with_a_clear_lens_and_clear_surroundings(self):
+        from PIL import Image
+        view = Image.open(ROOT / 'assets/hnmt/textures/misc/gun_scope.png')
+        self.assertEqual((view.size, view.mode), ((1024, 576), 'RGBA'))
+        for corner in ((2, 2), (1021, 2), (2, 300), (1021, 300)):
+            self.assertEqual(view.getpixel(corner)[3], 0, '縁の外（四隅・左右）は、透明（景色が見える）')
+        cx, cy = 512, int(576 * 0.43)
+        self.assertEqual(view.getpixel((cx + 90, cy + 60))[3] < 80, True, 'レンズの中は、ほぼ透明')
+        self.assertEqual(view.getpixel((cx, cy - 175))[3], 255, '筒の縁（円環）は、不透明な黒')
+        self.assertEqual(view.getpixel((cx, cy))[:3], (230, 40, 40), '中央は、赤い点')
+        self.assertEqual(view.getpixel((cx, 570))[3], 255, '画面の下には、銃の本体がある')
+        opaque = sum(1 for p in view.getdata() if p[3] > 200)
+        self.assertLess(opaque / (1024 * 576), 0.35, '視界の大半は、覆わない')
+
+    def test_the_scope_view_capability_needs_the_picture(self):
+        self.assertIn('gun-scope-v1', make_manifest.manifest('v0.11.2', packed())['capabilities'])
+        self.assertNotIn('gun-scope-v1', make_manifest.manifest('v0.11.2', packed(drop='assets/hnmt/textures/misc/gun_scope.png'))['capabilities'])
+        self.assertNotIn('gun-scope-v1', make_manifest.manifest('v0.11.2', packed(empty='assets/hnmt/textures/misc/gun_scope.png'))['capabilities'])
 
     def test_a_loaded_gun_switches_to_the_aim_pose_while_use_is_held(self):
         for gun in ('matchlock', 'tanzutsu'):

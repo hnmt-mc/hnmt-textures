@@ -211,9 +211,10 @@ def draw(name):
     raise ValueError('Unknown gun item: ' + name)
 
 
-# 構え（スコープ）の display。右クリックを押しているあいだ、銃を画面の中央へ寄せ、銃身を照準線に重ねる（FPS の構え）。
-AIM_DISPLAY = dict(GUN_DISPLAY, firstperson_righthand={'rotation': [-95, 50, -95], 'translation': [-9.2, 5.0, -2.4], 'scale': [0.8, 0.8, 0.8]},
-                   firstperson_lefthand={'rotation': [-95, -50, 95], 'translation': [-9.2, 5.0, -2.4], 'scale': [0.8, 0.8, 0.8]})
+# スコープを覗く構えの display。
+# 覗いているあいだ、手に持った銃の絵は、見えなくする（スコープの画面に、銃身が映り込まないように。ごく小さくして隠す）。
+AIM_DISPLAY = dict(GUN_DISPLAY, firstperson_righthand={'rotation': [-95, 50, -95], 'translation': [0.0, -8.0, -8.0], 'scale': [0.001, 0.001, 0.001]},
+                   firstperson_lefthand={'rotation': [-95, -50, 95], 'translation': [0.0, -8.0, -8.0], 'scale': [0.001, 0.001, 0.001]})
 
 
 def write_json(path, data):
