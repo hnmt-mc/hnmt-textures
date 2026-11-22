@@ -72,19 +72,25 @@ class GunAssetTests(unittest.TestCase):
         opaque = sum(1 for p in scope.getdata() if p[3] > 0)
         self.assertLess(opaque / (512 * 256), 0.08, '照準が覆う面積は、画面の8%より小さい')
 
-    def test_the_scope_view_is_a_ring_with_a_clear_lens_and_clear_surroundings(self):
+    def test_the_aim_view_is_a_barrel_with_a_front_sight_in_the_rear_sight_notch(self):
         from PIL import Image
         view = Image.open(ROOT / 'assets/hnmt/textures/misc/gun_scope.png')
         self.assertEqual((view.size, view.mode), ((1024, 576), 'RGBA'))
-        for corner in ((2, 2), (1021, 2), (2, 300), (1021, 300)):
-            self.assertEqual(view.getpixel(corner)[3], 0, '縁の外（四隅・左右）は、透明（景色が見える）')
-        cx, cy = 512, int(576 * 0.43)
-        self.assertEqual(view.getpixel((cx + 90, cy + 60))[3] < 80, True, 'レンズの中は、ほぼ透明')
-        self.assertEqual(view.getpixel((cx, cy - 175))[3], 255, '筒の縁（円環）は、不透明な黒')
-        self.assertEqual(view.getpixel((cx, cy))[:3], (230, 40, 40), '中央は、赤い点')
-        self.assertEqual(view.getpixel((cx, 570))[3], 255, '画面の下には、銃の本体がある')
+        for corner in ((2, 2), (1021, 2), (2, 300), (1021, 300), (200, 560)):
+            self.assertEqual(view.getpixel(corner)[3], 0, '周りは、透明（景色が見える）')
+        self.assertEqual(view.getpixel((512, 200))[3], 0, '照星より上は、透明')
+        self.assertEqual(view.getpixel((512, 300 - 22))[3], 255, '照星（柱）が、画面の中央にある')
+        self.assertEqual(view.getpixel((512, 560))[3], 255, '照門の U 字の切れ込みの中に、銃身が見える')
+        self.assertEqual(view.getpixel((512 - 100, 500))[3], 255, '照門の板がある')
+        self.assertEqual(view.getpixel((512 - 100, 560))[3], 255, '照門の板は、下まで続く')
+        notch = view.getpixel((512, 490))
+        self.assertGreater(notch[0] + notch[1] + notch[2], 250, 'U 字の切れ込みから、明るい銃身の上面が見える（照門の板は、暗い）')
+        self.assertLess(sum(view.getpixel((512 - 100, 500))[:3]), 150, '照門の板は、暗い')
         opaque = sum(1 for p in view.getdata() if p[3] > 200)
-        self.assertLess(opaque / (1024 * 576), 0.35, '視界の大半は、覆わない')
+        self.assertLess(opaque / (1024 * 576), 0.2, '視界の大半は、覆わない')
+        # 照星は、切れ込みの真ん中（左右の中央）にある
+        columns = [x for x in range(1024) if view.getpixel((x, 300 - 22))[3] == 255]
+        self.assertAlmostEqual((columns[0] + columns[-1]) / 2, 512, delta=1)
 
     def test_the_scope_view_capability_needs_the_picture(self):
         self.assertIn('gun-scope-v1', make_manifest.manifest('v0.11.2', packed())['capabilities'])
