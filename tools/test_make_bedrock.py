@@ -190,6 +190,9 @@ class AllItemsTests(unittest.TestCase):
         # 刀と鞘（sword/*）は、平らなアイコンの品（3Dモデルは持たない）。持ち物のアイテムなので、統合版にも出す。
         with open(os.path.join(self.ROOT, "tools", "bedrock_bases.json"), encoding="utf-8") as handle:
             items |= {name for name in json.load(handle) if name.startswith("sword/")}
+        # 銃と弾（gun/*）も、平らなアイコンの品（3Dモデルは持たない）。持ち物のアイテムなので、統合版にも出す。
+        with open(os.path.join(self.ROOT, "tools", "bedrock_bases.json"), encoding="utf-8") as handle:
+            items |= {name for name in json.load(handle) if name.startswith("gun/")}
         # 町のメニューのアイコンは、平らな絵の品（3Dモデルは持たない）。GUI のボタンとして、統合版にも出す。
         with open(os.path.join(self.ROOT, "tools", "menu_icons.json"), encoding="utf-8") as handle:
             items |= {"menu/" + name for name in json.load(handle)}
