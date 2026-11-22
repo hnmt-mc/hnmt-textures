@@ -75,7 +75,13 @@ class GunAssetTests(unittest.TestCase):
             self.assertTrue((ROOT / 'assets/hnmt/textures/item/gun' / (name + '.png')).stat().st_size > 0, name)
             model = json.loads((ROOT / 'assets/hnmt/models/item/gun' / (name + '.json')).read_text())
             self.assertEqual(model['textures']['layer0'], 'hnmt:item/gun/' + name)
-            self.assertEqual(model['parent'], 'minecraft:item/generated' if name.startswith('ammo_') else 'minecraft:item/handheld')
+            self.assertEqual(model['parent'], 'minecraft:item/generated')
+            if name.startswith('ammo_'): self.assertNotIn('display', model)
+            else:
+                for context in ('firstperson_righthand', 'firstperson_lefthand', 'thirdperson_righthand', 'thirdperson_lefthand'):
+                    self.assertIn(context, model['display'], name + ' ' + context)
+                right, left = model['display']['firstperson_righthand'], model['display']['firstperson_lefthand']
+                self.assertEqual(left['rotation'], [right['rotation'][0], -right['rotation'][1], -right['rotation'][2]], '左手は、右手の左右反転')
             item = json.loads((ROOT / 'assets/hnmt/items/gun' / (name + '.json')).read_text())
             self.assertEqual(item['model']['model'], 'hnmt:item/gun/' + name)
 
