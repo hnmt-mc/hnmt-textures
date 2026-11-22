@@ -16,7 +16,8 @@ from artwork import PACK, BUILD
 W, H = 512, 256
 # （名前, 文字）。文字は、サーバー（GunEffects）と同じ
 SCREENS = [('gun_flash', ''), ('gun_scope', ''), ('gun_ember', ''), ('gun_smoke', '')]
-HEIGHT, ASCENT = 144, 78
+# 絵の中心が、画面の中心（クロスヘア）に重なるように、基準線の位置を決める（タイトルの文字は、画面の中心の少し上に基準線が来る）
+HEIGHT, ASCENT = 144, 69
 
 
 def pixels(fn):
@@ -37,16 +38,21 @@ def flash():
 
 
 def scope():
-    """照準。円の外は黒、円の中は透明。中央に細い十字線と、小さな点。"""
-    radius = 0.92
-    image = pixels(lambda dx, dy: (0, 0, 0, 238 if math.hypot(dx, dy) > radius else (int(238 * max(0.0, (math.hypot(dx, dy) - (radius - 0.06)) / 0.06)))))
+    """照準（FPS のスコープ）。画面を覆わない。中央の、細い十字線と、小さな輪だけ。白い線に、暗い縁を付けて、明るい所でも見える。"""
+    image = Image.new('RGBA', (W, H))
     draw = ImageDraw.Draw(image)
-    cx, cy, r = W / 2, H / 2, radius * H / 2
-    draw.line((cx - r, cy, cx - 10, cy), fill=(10, 10, 10, 235), width=2)
-    draw.line((cx + 10, cy, cx + r, cy), fill=(10, 10, 10, 235), width=2)
-    draw.line((cx, cy - r, cx, cy - 10), fill=(10, 10, 10, 235), width=2)
-    draw.line((cx, cy + 10, cx, cy + r), fill=(10, 10, 10, 235), width=2)
-    draw.ellipse((cx - 2, cy - 2, cx + 2, cy + 2), fill=(200, 30, 30, 255))
+    cx, cy = W / 2, H / 2
+    light, shadow = (255, 255, 255, 235), (0, 0, 0, 170)
+    def line(points, width=2):
+        draw.line(points, fill=shadow, width=width + 2)
+        draw.line(points, fill=light, width=width)
+    for sign in (-1, 1):
+        line((cx + sign * 9, cy, cx + sign * 40, cy))                    # 左右の線（中央は、あける）
+        line((cx, cy + sign * 9, cx, cy + sign * 40))                    # 上下の線
+        line((cx + sign * 40, cy - 5, cx + sign * 40, cy + 5), 2)        # 目盛り（左右）
+        line((cx - 5, cy + sign * 40, cx + 5, cy + sign * 40), 2)        # 目盛り（上下）
+    draw.ellipse((cx - 56, cy - 56, cx + 56, cy + 56), outline=(255, 255, 255, 110), width=2)   # 外の細い輪
+    draw.ellipse((cx - 2, cy - 2, cx + 2, cy + 2), fill=(230, 40, 40, 255))                      # 中央の赤い点
     return image
 
 

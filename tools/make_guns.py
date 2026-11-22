@@ -211,6 +211,11 @@ def draw(name):
     raise ValueError('Unknown gun item: ' + name)
 
 
+# 構え（スコープ）の display。右クリックを押しているあいだ、銃を画面の中央へ寄せ、銃身を照準線に重ねる（FPS の構え）。
+AIM_DISPLAY = dict(GUN_DISPLAY, firstperson_righthand={'rotation': [-95, 50, -95], 'translation': [-9.2, 5.0, -2.4], 'scale': [0.8, 0.8, 0.8]},
+                   firstperson_lefthand={'rotation': [-95, -50, 95], 'translation': [-9.2, 5.0, -2.4], 'scale': [0.8, 0.8, 0.8]})
+
+
 def write_json(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
@@ -221,7 +226,15 @@ def build():
         path = PACK / 'assets/hnmt/textures/item/gun' / (name + '.png')
         path.parent.mkdir(parents=True, exist_ok=True)
         draw(name).save(path)
-        write_json(PACK / 'assets/hnmt/items/gun' / (name + '.json'), {'model': {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name}})
+        model_ref = {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name}
+        if name.endswith('_loaded'):
+            # 装填済み: 右クリックを押しているあいだ（スコープ）は、構えの絵（銃が中央へ寄る）。クライアント側で切り替わる
+            model_ref = {'type': 'minecraft:condition', 'property': 'minecraft:keybind_down', 'keybind': 'key.use',
+                         'on_true': {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name.replace('_loaded', '_aim')}, 'on_false': model_ref}
+        write_json(PACK / 'assets/hnmt/items/gun' / (name + '.json'), {'model': model_ref})
+        if name.endswith('_loaded'):
+            write_json(PACK / 'assets/hnmt/models/item/gun' / (name.replace('_loaded', '_aim') + '.json'),
+                       {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'hnmt:item/gun/' + name}, 'display': AIM_DISPLAY})
         model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'hnmt:item/gun/' + name}}
         if holding == 'gun': model['display'] = GUN_DISPLAY
         write_json(PACK / 'assets/hnmt/models/item/gun' / (name + '.json'), model)
