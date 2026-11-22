@@ -16,9 +16,19 @@ from artwork import PACK, BUILD
 from pixelart import Canvas, mix, noise, rgba
 
 SIZE = 64
-# （名前, 持ち方）。持ち方: handheld は道具のように持つ、generated は物のように持つ
-GUNS = [('matchlock', 'handheld'), ('matchlock_loaded', 'handheld'), ('tanzutsu', 'handheld'), ('tanzutsu_loaded', 'handheld'),
+# （名前, 持ち方）。持ち方: gun は銃のように構える（銃口が前へ向く。下の GUN_DISPLAY）、generated は物のように持つ
+GUNS = [('matchlock', 'gun'), ('matchlock_loaded', 'gun'), ('tanzutsu', 'gun'), ('tanzutsu_loaded', 'gun'),
         ('ammo_teppo', 'generated'), ('ammo_shoidan', 'generated'), ('ammo_sandan', 'generated')]
+
+# 銃の構え（モデルの display）。一人称は、絵の中の銃身の向きが、画面の奥（前）へ向き、側面が見えるように回し、
+# 柄（火縄の仕掛けのあたり）が、バニラの剣の柄と同じ手の位置に来るように動かす（計算で求めた値。実機で、見え方を確かめて直す）。
+# 左手は、右手の左右反転（回転の y・z の符号を反転）。三人称は、バニラのクロスボウと同じ構え。
+GUN_DISPLAY = {
+    'firstperson_righthand': {'rotation': [-95, 50, -95], 'translation': [2.6, 0.0, -8.0], 'scale': [0.8, 0.8, 0.8]},
+    'firstperson_lefthand': {'rotation': [-95, -50, 95], 'translation': [2.6, 0.0, -8.0], 'scale': [0.8, 0.8, 0.8]},
+    'thirdperson_righthand': {'rotation': [-90, 0, -60], 'translation': [2, 0.1, -3], 'scale': [0.9, 0.9, 0.9]},
+    'thirdperson_lefthand': {'rotation': [-90, 0, 30], 'translation': [2, 0.1, -3], 'scale': [0.9, 0.9, 0.9]},
+}
 
 STEEL = ('#2f3644', '#566072', '#8f9cb0')        # 黒ずんだ銃身（暗・中・ハイライト）
 WOOD = ('#4a2c18', '#7a4a26', '#a8703c')         # 銃床（暗・中・明）
@@ -201,6 +211,11 @@ def draw(name):
     raise ValueError('Unknown gun item: ' + name)
 
 
+# 構え（スコープ）の display。右クリックを押しているあいだ、銃を画面の中央へ寄せ、銃身を照準線に重ねる（FPS の構え）。
+AIM_DISPLAY = dict(GUN_DISPLAY, firstperson_righthand={'rotation': [-95, 50, -95], 'translation': [-9.2, 5.0, -2.4], 'scale': [0.8, 0.8, 0.8]},
+                   firstperson_lefthand={'rotation': [-95, -50, 95], 'translation': [-9.2, 5.0, -2.4], 'scale': [0.8, 0.8, 0.8]})
+
+
 def write_json(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
@@ -211,9 +226,18 @@ def build():
         path = PACK / 'assets/hnmt/textures/item/gun' / (name + '.png')
         path.parent.mkdir(parents=True, exist_ok=True)
         draw(name).save(path)
-        write_json(PACK / 'assets/hnmt/items/gun' / (name + '.json'), {'model': {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name}})
-        write_json(PACK / 'assets/hnmt/models/item/gun' / (name + '.json'),
-                   {'parent': 'minecraft:item/' + holding, 'textures': {'layer0': 'hnmt:item/gun/' + name}})
+        model_ref = {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name}
+        if name.endswith('_loaded'):
+            # 装填済み: 右クリックを押しているあいだ（スコープ）は、構えの絵（銃が中央へ寄る）。クライアント側で切り替わる
+            model_ref = {'type': 'minecraft:condition', 'property': 'minecraft:keybind_down', 'keybind': 'key.use',
+                         'on_true': {'type': 'minecraft:model', 'model': 'hnmt:item/gun/' + name.replace('_loaded', '_aim')}, 'on_false': model_ref}
+        write_json(PACK / 'assets/hnmt/items/gun' / (name + '.json'), {'model': model_ref})
+        if name.endswith('_loaded'):
+            write_json(PACK / 'assets/hnmt/models/item/gun' / (name.replace('_loaded', '_aim') + '.json'),
+                       {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'hnmt:item/gun/' + name}, 'display': AIM_DISPLAY})
+        model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'hnmt:item/gun/' + name}}
+        if holding == 'gun': model['display'] = GUN_DISPLAY
+        write_json(PACK / 'assets/hnmt/models/item/gun' / (name + '.json'), model)
     print('Wrote %d gun icons' % len(GUNS))
 
 

@@ -66,8 +66,26 @@ class GunAssetTests(unittest.TestCase):
             image = Image.open(ROOT / 'assets/hnmt/textures/font' / (name + '.png'))
             self.assertEqual((image.size, image.mode), ((512, 256), 'RGBA'), name)
         scope = Image.open(ROOT / 'assets/hnmt/textures/font/gun_scope.png')
-        self.assertEqual(scope.getpixel((100, 128))[3] > 200, True, '照準: 円の外は、暗い')
-        self.assertEqual(scope.getpixel((256 + 60, 128 - 40))[3], 0, '照準: 円の中は、透明')
+        self.assertEqual(scope.getpixel((20, 20))[3], 0, '照準: 画面の縁は、透明（画面を覆わない）')
+        self.assertEqual(scope.getpixel((256 + 70, 128 - 90))[3], 0, '照準: 十字線の外側は、透明')
+        self.assertTrue(scope.getpixel((256 + 20, 128))[3] > 200, '照準: 十字線がある')
+        opaque = sum(1 for p in scope.getdata() if p[3] > 0)
+        self.assertLess(opaque / (512 * 256), 0.08, '照準が覆う面積は、画面の8%より小さい')
+
+    def test_a_loaded_gun_switches_to_the_aim_pose_while_use_is_held(self):
+        for gun in ('matchlock', 'tanzutsu'):
+            item = json.loads((ROOT / ('assets/hnmt/items/gun/%s_loaded.json' % gun)).read_text())['model']
+            self.assertEqual((item['type'], item['property'], item['keybind']), ('minecraft:condition', 'minecraft:keybind_down', 'key.use'))
+            self.assertEqual(item['on_true']['model'], 'hnmt:item/gun/%s_aim' % gun)
+            self.assertEqual(item['on_false']['model'], 'hnmt:item/gun/%s_loaded' % gun)
+            aim = json.loads((ROOT / ('assets/hnmt/models/item/gun/%s_aim.json' % gun)).read_text())
+            self.assertEqual(aim['textures']['layer0'], 'hnmt:item/gun/%s_loaded' % gun, '構えの絵は、装填済みと同じ')
+            normal = json.loads((ROOT / ('assets/hnmt/models/item/gun/%s_loaded.json' % gun)).read_text())
+            self.assertLess(aim['display']['firstperson_righthand']['translation'][0], normal['display']['firstperson_righthand']['translation'][0], '構えは、銃が中央（左）へ寄る')
+            self.assertEqual(aim['display']['firstperson_righthand']['rotation'], normal['display']['firstperson_righthand']['rotation'])
+        for gun in ('matchlock', 'tanzutsu'):
+            plain = json.loads((ROOT / ('assets/hnmt/items/gun/%s.json' % gun)).read_text())['model']
+            self.assertEqual(plain['type'], 'minecraft:model', '空の銃は、構えの絵を持たない')
 
     def test_every_gun_item_has_an_icon_model_and_item_definition(self):
         names = ('matchlock', 'matchlock_loaded', 'tanzutsu', 'tanzutsu_loaded', 'ammo_teppo', 'ammo_shoidan', 'ammo_sandan')
@@ -75,9 +93,16 @@ class GunAssetTests(unittest.TestCase):
             self.assertTrue((ROOT / 'assets/hnmt/textures/item/gun' / (name + '.png')).stat().st_size > 0, name)
             model = json.loads((ROOT / 'assets/hnmt/models/item/gun' / (name + '.json')).read_text())
             self.assertEqual(model['textures']['layer0'], 'hnmt:item/gun/' + name)
-            self.assertEqual(model['parent'], 'minecraft:item/generated' if name.startswith('ammo_') else 'minecraft:item/handheld')
+            self.assertEqual(model['parent'], 'minecraft:item/generated')
+            if name.startswith('ammo_'): self.assertNotIn('display', model)
+            else:
+                for context in ('firstperson_righthand', 'firstperson_lefthand', 'thirdperson_righthand', 'thirdperson_lefthand'):
+                    self.assertIn(context, model['display'], name + ' ' + context)
+                right, left = model['display']['firstperson_righthand'], model['display']['firstperson_lefthand']
+                self.assertEqual(left['rotation'], [right['rotation'][0], -right['rotation'][1], -right['rotation'][2]], '左手は、右手の左右反転')
             item = json.loads((ROOT / 'assets/hnmt/items/gun' / (name + '.json')).read_text())
-            self.assertEqual(item['model']['model'], 'hnmt:item/gun/' + name)
+            reference = item['model'] if item['model']['type'] == 'minecraft:model' else item['model']['on_false']
+            self.assertEqual(reference['model'], 'hnmt:item/gun/' + name)
 
     def test_the_bedrock_table_has_every_gun_item(self):
         bases = json.loads((ROOT / 'tools/bedrock_bases.json').read_text())
