@@ -21,12 +21,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 BLADE_SOUNDS = ('blade.draw', 'blade.sheath', 'blade.iai', 'blade.dash', 'blade.youtou')
+BLADE_ATTACK_SOUNDS = ('blade.swing', 'blade.strike', 'blade.sweep', 'blade.crit')
 
 
-def blade_sounds(archive):
+def blade_sounds(archive, wanted=BLADE_SOUNDS):
     """刀の音は、音の定義と、定義が指す ogg がすべて ZIP に入っているときだけ、使えるとみなす。"""
     events = json.loads(archive.read('assets/hnmt/sounds.json'))
-    for event in BLADE_SOUNDS:
+    for event in wanted:
         entries = events[event]['sounds']
         if not entries: return False
         for entry in entries:
@@ -41,6 +42,7 @@ def capabilities(data):
     try:
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             if blade_sounds(archive): found.append('blade-sounds-v1')
+            if blade_sounds(archive, BLADE_SOUNDS + BLADE_ATTACK_SOUNDS): found.append('blade-attack-sounds-v1')
     except (zipfile.BadZipFile, KeyError, ValueError, TypeError, AttributeError):
         pass
     return found + rice_capabilities(data)

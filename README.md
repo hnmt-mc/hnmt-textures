@@ -135,6 +135,22 @@ python3 tools/make_wafu_food.py --preview  # 絵を拡大して並べる（build
 | `sheath` `sheath_full` | 鞘（空・刀入り） | 物のように（`item/generated`） |
 
 統合版（Geyser）は、10種類すべてを対応づけます。元のアイテムは、刀・名刀・刺股・レイピアがバニラの剣（鉄・ダイヤ・ネザライト）、鞘が火打石です。
+
+## 刀の音
+
+`assets/hnmt/sounds.json` と `assets/hnmt/sounds/blade/` に、刀の音を入れています。
+
+| 音の名前 | 場面 |
+|---|---|
+| `hnmt:blade.draw` / `blade.sheath` | 鞘から抜く / しまう |
+| `blade.iai` | 居合の一撃 |
+| `blade.dash` | レイピアの踏み込み |
+| `blade.youtou` | 妖刀の吸血 |
+| `blade.swing` / `blade.strike` / `blade.sweep` / `blade.crit` | 刀を持った攻撃の、振る・当てる・薙ぎ払う・クリティカルの音（バニラの攻撃の音の代わり） |
+
+上の5つがすべて入っているときだけ、`pack.json` の `capabilities` に `blade-sounds-v1` が載ります。攻撃の4つまで入っているときは、`blade-attack-sounds-v1` も載ります。対応版 hnmt-core は、この目印を見て、パックの音が入っている Java 版の人にだけパックの音を鳴らします。パックを入れていない人（統合版を含む）には、バニラの音のままです。
+
+音は、Ben Jaszczak と Brian Nelson が録音した [Medieval sound effects - Weapon Textures](https://opengameart.org/content/medieval-sound-effects-weapon-textures)（CC0）の、刀を抜く・しまう・振る音とサーベルを振る音から切り出し、mono 44.1kHz の ogg にしています。妖刀の音だけは、刀をゆっくり抜く録音の音程を下げて、高域を抑えた加工です。
 「元のアイテム」と見た目の組が、種類ごとに重ならないようにしています。
 
 ```sh

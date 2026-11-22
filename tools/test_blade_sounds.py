@@ -7,7 +7,7 @@ from pathlib import Path
 import make_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
-EVENTS = make_manifest.BLADE_SOUNDS
+EVENTS = make_manifest.BLADE_SOUNDS + make_manifest.BLADE_ATTACK_SOUNDS
 
 
 def packed(drop=None, empty=None):
@@ -41,6 +41,12 @@ class BladeSoundTests(unittest.TestCase):
         self.assertNotIn('blade-sounds-v1', make_manifest.manifest('v0.9.0', packed(drop='assets/hnmt/sounds/blade/draw.ogg'))['capabilities'])
         self.assertNotIn('blade-sounds-v1', make_manifest.manifest('v0.9.0', packed(empty='assets/hnmt/sounds/blade/dash.ogg'))['capabilities'])
         self.assertNotIn('blade-sounds-v1', make_manifest.manifest('v0.9.0', b'not a zip')['capabilities'])
+
+    def test_the_attack_capability_needs_the_attack_sounds_too(self):
+        self.assertIn('blade-attack-sounds-v1', make_manifest.manifest('v0.9.1', packed())['capabilities'])
+        broken = make_manifest.manifest('v0.9.1', packed(drop='assets/hnmt/sounds/blade/crit1.ogg'))['capabilities']
+        self.assertIn('blade-sounds-v1', broken, '古い5つの音は、そのまま使える')
+        self.assertNotIn('blade-attack-sounds-v1', broken)
 
 
 if __name__ == '__main__':
